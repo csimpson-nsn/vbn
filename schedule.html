@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Schedule | Vermont Basketball Network</title>
+<meta name="description" content="Vermont high school basketball schedule for boys and girls: every NVAC game, by date, division, and team.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- SPONSOR SLOT: schedule page banner. Swap the dashed box for a sponsor logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);">Schedule Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Schedule%20Sponsorship">Sponsor This Page &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">2026-27 Season</span>
+    <h1>Game <em>Schedule</em></h1>
+    <p>Every NVAC boys and girls varsity game, home team listed first. Pick a team to see its whole season. Tip-off times marked by the league as standard host times can change, so check with the school on game day.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab" data-g="">Both</button><button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+      <div class="tab-row" id="divTabs" role="group" aria-label="Division">
+        <button class="tab" data-d="">All</button><button class="tab" data-d="Metro">Metro</button><button class="tab" data-d="Lake">Lake</button><button class="tab" data-d="Capital">Capital</button><button class="tab" data-d="Mountain">Mountain</button>
+      </div>
+      <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
+    </div>
+    <div id="scheduleOut"><p class="empty">Loading the schedule&hellip;</p></div>
+    <div class="more-row"><button class="btn" id="moreBtn" style="display:none;"><span>Show More Days</span></button></div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var DAYS_PER_PAGE = 10;
+var STATE = { g: '', d: '', team: '', days: DAYS_PER_PAGE };
+var ROWS = [];
+
+// Which games to show. No team picked: today forward. Team picked: that team's whole season.
+function filterGames(rows, st, today) {
+  return rows.filter(function (g) {
+    var d = VBN.parseDate(g.Date);
+    if (!d) return false;
+    if (st.g && String(g.Gender).toUpperCase() !== st.g) return false;
+    if (st.d) {
+      var gn = String(g.Gender).toUpperCase();
+      if (VBN.leagueOf(g.Team1, gn) !== st.d && VBN.leagueOf(g.Team2, gn) !== st.d) return false;
+    }
+    if (st.team) return VBN.norm(g.Team1) === VBN.norm(st.team) || VBN.norm(g.Team2) === VBN.norm(st.team);
+    return d >= today;
+  }).sort(function (a, b) {
+    return (VBN.sortTime(a) - VBN.sortTime(b)) || String(a.Gender).localeCompare(String(b.Gender)) ||
+           String(a.Team1).localeCompare(String(b.Team1));
+  });
+}
+
+function groupByDay(games) {
+  var out = [], map = {};
+  games.forEach(function (g) {
+    var d = VBN.parseDate(g.Date), k = VBN.dayKey(d);
+    if (!map[k]) { map[k] = { date: d, games: [] }; out.push(map[k]); }
+    map[k].games.push(g);
+  });
+  return out;
+}
+
+// School names for the team picker: NVAC members only, for the chosen gender.
+function teamOptions(rows, gender) {
+  var seen = {};
+  rows.forEach(function (g) {
+    var gn = String(g.Gender).toUpperCase();
+    if (gender && gn !== gender) return;
+    [g.Team1, g.Team2].forEach(function (t) { if (t && VBN.isMember(t, gn)) seen[t] = true; });
+  });
+  return Object.keys(seen).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+}
+
+function render() {
+  var out = document.getElementById('scheduleOut');
+  var days = groupByDay(filterGames(ROWS, STATE, VBN.startOfToday()));
+  if (!days.length) {
+    out.innerHTML = '<p class="empty">' + (ROWS.length ? 'No games match these filters.' : 'The schedule has no games yet.') + '</p>';
+    document.getElementById('moreBtn').style.display = 'none';
+    return;
+  }
+  var shown = STATE.team ? days : days.slice(0, STATE.days);
+  out.innerHTML = shown.map(function (day) {
+    return '<div class="day-block"><div class="day-head">' + VBN.dayLabel(day.date) +
+      '<span class="count">' + day.games.length + ' game' + (day.games.length === 1 ? '' : 's') + '</span></div>' +
+      '<div class="games-grid">' + day.games.map(function (g) { return VBN.gameCardHTML(g, {}); }).join('') + '</div></div>';
+  }).join('');
+  document.getElementById('moreBtn').style.display = shown.length < days.length ? '' : 'none';
+}
+
+function syncControls() {
+  document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
+  document.querySelectorAll('#divTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.d === STATE.d); });
+  var sel = document.getElementById('teamSelect');
+  var names = teamOptions(ROWS, STATE.g);
+  if (STATE.team && names.indexOf(STATE.team) === -1) STATE.team = '';
+  sel.innerHTML = '<option value="">All teams</option>' + names.map(function (n) {
+    var label = STATE.g ? VBN.displayName(n, STATE.g) : n;   // girls list shows "Caledonia United" for Danville
+    return '<option value="' + VBN.esc(n) + '"' + (n === STATE.team ? ' selected' : '') + '>' + VBN.esc(label) + '</option>';
+  }).join('');
+  var p = new URLSearchParams();
+  if (STATE.g) p.set('g', STATE.g); if (STATE.d) p.set('div', STATE.d); if (STATE.team) p.set('team', STATE.team);
+  history.replaceState(null, '', location.pathname + (p.toString() ? '?' + p : ''));
+}
+
+function update() { STATE.days = DAYS_PER_PAGE; syncControls(); render(); }
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('schedule.html');
+  var p = new URLSearchParams(location.search);
+  STATE.g = /^[BG]$/.test(p.get('g') || '') ? p.get('g') : '';
+  STATE.d = ['Metro', 'Lake', 'Capital', 'Mountain'].indexOf(p.get('div')) > -1 ? p.get('div') : '';
+  STATE.team = p.get('team') || '';
+
+  document.getElementById('genderTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; update(); }
+  });
+  document.getElementById('divTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (b) { STATE.d = b.dataset.d; update(); }
+  });
+  document.getElementById('teamSelect').addEventListener('change', function (e) { STATE.team = e.target.value; update(); });
+  document.getElementById('moreBtn').addEventListener('click', function () { STATE.days += DAYS_PER_PAGE; render(); });
+  VBN.wireCards(document.getElementById('scheduleOut'));
+
+  // Both sources load at once. If Teams fails, the schedule still shows (plain names, gray squares).
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
+    if (res[0].status === 'rejected') console.warn('Teams did not load:', res[0].reason);
+    if (res[1].status === 'rejected') {
+      console.error(res[1].reason);
+      document.getElementById('scheduleOut').innerHTML = '<p class="empty">The schedule could not load right now. Please try again in a minute.</p>';
+      return;
+    }
+    ROWS = res[1].value;
+    syncControls();
+    render();
+  });
+});
+</script>
+</body>
+</html>

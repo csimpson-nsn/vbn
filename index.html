@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Home | Vermont Basketball Network</title>
+<meta name="description" content="Vermont high school basketball: live scores, schedules, and broadcasts for NVAC boys and girls, from Northeast Sports Network.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- NETWORK SPONSOR: swap the dashed box for the presenting sponsor's logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);font-size:1rem;">VBN Powered By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Sponsorship">Click Here to Sponsor &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero" style="min-height:36vh;display:flex;align-items:center;">
+  <div class="wrap">
+    <span class="eyebrow" id="heroLabel">Vermont High School Basketball</span>
+    <h1 style="font-size:clamp(2.4rem,6.5vw,5rem);line-height:.97;max-width:880px;">Every Tip-Off.<br><em>Every Gym.</em></h1>
+    <div style="display:flex;gap:16px;margin-top:28px;flex-wrap:wrap;align-items:center;">
+      <a href="schedule.html" class="btn" style="padding:15px 28px;"><span>Full Schedule</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="eyebrow" id="dayLabel">Loading&hellip;</span><h2 id="dayTitle">Game Day</h2></div>
+      <a href="schedule.html" class="link">Full Schedule &rarr;</a>
+    </div>
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab active" data-g="">Both</button><button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+    </div>
+    <div class="games-grid" id="dayGrid"></div>
+    <p class="empty" id="dayEmpty" style="display:none;"></p>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var ROWS = [], GENDER = '';
+
+// The day to feature: today if there are games today, otherwise the next game day,
+// otherwise (season over) the last game day.
+function pickDay(rows, today) {
+  var days = {};
+  rows.forEach(function (g) { var d = VBN.parseDate(g.Date); if (d) days[d.getTime()] = d; });
+  var list = Object.keys(days).map(Number).sort(function (a, b) { return a - b; });
+  if (!list.length) return null;
+  var t = today.getTime();
+  for (var i = 0; i < list.length; i++) if (list[i] >= t) return new Date(list[i]);
+  return new Date(list[list.length - 1]);
+}
+
+// Live games first, then games still to play (by tip-off), then finals and postponements.
+function orderDay(games) {
+  function rank(g) { return VBN.isLive(g) ? 0 : (VBN.isFinal(g) || VBN.isOff(g)) ? 2 : 1; }
+  return games.slice().sort(function (a, b) {
+    return (rank(a) - rank(b)) || (VBN.sortTime(a) - VBN.sortTime(b)) || String(a.Team1).localeCompare(String(b.Team1));
+  });
+}
+
+function render() {
+  var today = VBN.startOfToday(), day = pickDay(ROWS, today);
+  var grid = document.getElementById('dayGrid'), empty = document.getElementById('dayEmpty');
+  if (!day) {
+    document.getElementById('dayLabel').textContent = '2026-27 Season';
+    grid.innerHTML = ''; empty.style.display = ''; empty.textContent = 'The schedule has no games yet.';
+    return;
+  }
+  var key = VBN.dayKey(day);
+  var all = ROWS.filter(function (g) { var d = VBN.parseDate(g.Date); return d && VBN.dayKey(d) === key; });
+  var games = orderDay(all.filter(function (g) { return !GENDER || String(g.Gender).toUpperCase() === GENDER; }));
+  var anyLive = all.some(VBN.isLive);
+  var isToday = day.getTime() === today.getTime();
+
+  document.getElementById('dayLabel').innerHTML = anyLive ? '<span class="live-dot"></span>Live Now' : VBN.dayLabel(day);
+  document.getElementById('dayTitle').textContent = isToday ? "Today's Games" : (day < today ? 'Last Game Day' : 'Next Game Day');
+  document.getElementById('heroLabel').innerHTML = anyLive
+    ? '<span class="live-dot"></span>Live Now &middot; Vermont High School Basketball'
+    : (isToday ? 'Game Day' : VBN.dayLabel(day)) + ' &middot; Vermont High School Basketball';
+
+  var records = VBN.computeRecords(ROWS);
+  grid.innerHTML = games.map(function (g) { return VBN.gameCardHTML(g, { scores: true, records: records }); }).join('');
+  empty.style.display = games.length ? 'none' : '';
+  empty.textContent = games.length ? '' : 'No ' + (GENDER === 'B' ? 'boys' : 'girls') + ' games this day.';
+}
+
+function load() {
+  return Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
+    if (res[0].status === 'rejected') console.warn('Teams did not load:', res[0].reason);
+    if (res[1].status === 'rejected') {
+      console.error(res[1].reason);
+      if (!ROWS.length) {
+        document.getElementById('dayLabel').textContent = 'Schedule unavailable';
+        var e = document.getElementById('dayEmpty'); e.style.display = ''; e.textContent = 'Games could not load right now. Please try again in a minute.';
+      }
+      return;
+    }
+    ROWS = res[1].value;
+    render();
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('index.html');
+  document.getElementById('genderTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    GENDER = b.dataset.g;
+    document.querySelectorAll('#genderTabs .tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+    render();
+  });
+  VBN.wireCards(document.getElementById('dayGrid'));
+  load();
+  setInterval(load, 45000);   // live scores refresh every 45 seconds
+});
+</script>
+</body>
+</html>
