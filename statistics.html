@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: statistics.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistics | Vermont Basketball Network</title>
+<meta name="description" content="Vermont high school basketball stat leaders: points, rebounds, assists, steals, blocks, and shooting for NVAC boys and girls.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- SPONSOR SLOT: statistics page banner. Swap the dashed box for a sponsor logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);">Stat Leaders Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Statistics%20Sponsorship">Sponsor This Page &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">2026-27 Season</span>
+    <h1>Stat <em>Leaders</em></h1>
+    <p>Season leaders across the NVAC. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. League leaderboards have minimums; pick a team to see everyone.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+      <div class="tab-row" id="divTabs" role="group" aria-label="Division">
+        <button class="tab" data-d="">All</button><button class="tab" data-d="Metro">Metro</button><button class="tab" data-d="Lake">Lake</button><button class="tab" data-d="Capital">Capital</button><button class="tab" data-d="Mountain">Mountain</button>
+      </div>
+      <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
+    </div>
+    <div class="tab-row" id="catTabs" role="group" aria-label="Stat category" style="margin-bottom:22px;"></div>
+    <div id="minNote" class="note" style="display:none;"></div>
+    <div id="statsOut"><p class="empty">Loading stats&hellip;</p></div>
+    <div class="pager" id="pager" style="display:none;">
+      <button id="prevBtn">Prev</button><span id="pageInfo"></span><button id="nextBtn">Next</button>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var PAGE_SIZE = 10;
+// League leaderboard minimums. Ignored when a single team is picked (team view shows everyone).
+var MIN_GAME_SHARE = 0.5;                       // must play at least half of the team's final games
+var MIN_ATTEMPTS_PER_GAME = { 'FG%': 4, '3P%': 1.5, 'FT%': 2 };
+
+var CATS = [
+  { id: 'PTS', label: 'Points', col: 'PTS' }, { id: 'REB', label: 'Rebounds', col: 'REB' },
+  { id: 'AST', label: 'Assists', col: 'AST' }, { id: 'STL', label: 'Steals', col: 'STL' },
+  { id: 'BLK', label: 'Blocks', col: 'BLK' }, { id: '3PM', label: '3-Pointers', col: '3PM' },
+  { id: 'FG%', label: 'FG%', made: 'FGM', att: 'FGA' }, { id: '3P%', label: '3P%', made: '3PM', att: '3PA' },
+  { id: 'FT%', label: 'FT%', made: 'FTM', att: 'FTA' }
+];
+var STATE = { g: 'B', d: '', team: '', cat: 'PTS', sort: null, page: 1 };
+var PLAYERS = [], SCHEDULE = [], TEAM_FINALS = {}, STATS_READY = false;
+
+function catOf(id) { return CATS.filter(function (c) { return c.id === id; })[0] || CATS[0]; }
+
+// Columns for the current category: [key, header, numeric?, formatter]
+function columns(cat) {
+  if (cat.made) return [
+    ['gp', 'GP', true, String], ['made', 'Made', true, String], ['att', 'Att', true, String],
+    ['pct', cat.label, true, function (v) { return v === null ? '&ndash;' : (v * 100).toFixed(1); }]];
+  return [
+    ['gp', 'GP', true, String], ['tracked', 'Games w/ Stat', true, String], ['total', 'Total', true, String],
+    ['per', 'Per Game', true, function (v) { return v === null ? '&ndash;' : v.toFixed(1); }]];
+}
+
+// Build the leaderboard rows for the current filters. Pure logic, no page access.
+function buildRows(players, st, teamFinals) {
+  var cat = catOf(st.cat);
+  var list = players.filter(function (p) {
+    if (p.gender !== st.g) return false;
+    if (st.team) return VBN.norm(p.team) === VBN.norm(st.team);
+    if (st.d && VBN.leagueOf(p.team, p.gender) !== st.d) return false;
+    return VBN.isMember(p.team, p.gender);
+  }).map(function (p) {
+    var r = { p: p, gp: p.gp };
+    if (cat.made) {
+      r.made = p.tot[cat.made] || 0; r.att = p.tot[cat.att] || 0; r.pct = r.att ? r.made / r.att : null;
+    } else {
+      r.tracked = p.tracked[cat.col] || 0; r.total = p.tot[cat.col] || 0; r.per = p.per[cat.col];
+    }
+    return r;
+  }).filter(function (r) { return cat.made ? r.att > 0 : r.tracked > 0; });
+
+  if (!st.team) {
+    list = list.filter(function (r) {
+      var finals = teamFinals[VBN.key(r.p.team, r.p.gender)] || r.p.gp;
+      if (r.p.gp < Math.max(1, Math.ceil(finals * MIN_GAME_SHARE))) return false;
+      if (cat.made) return r.att >= MIN_ATTEMPTS_PER_GAME[cat.id] * finals;
+      return true;
+    });
+  }
+  var sortKey = st.sort || (cat.made ? 'pct' : 'per');
+  list.sort(function (a, b) {
+    var x = a[sortKey], y = b[sortKey];
+    if (x === null) x = -1; if (y === null) y = -1;
+    return (y - x) || (b.gp - a.gp) || a.p.player.localeCompare(b.p.player);
+  });
+  list.forEach(function (r, i) { r.rank = i + 1; });          // true rank across all pages
+  return { rows: list, sortKey: sortKey };
+}
+
+function finalsByTeam(schedule) {
+  var out = {};
+  schedule.forEach(function (g) {
+    if (!VBN.isFinal(g)) return;
+    [g.Team1, g.Team2].forEach(function (t) { var k = VBN.key(t, g.Gender); out[k] = (out[k] || 0) + 1; });
+  });
+  return out;
+}
+
+function render() {
+  var out = document.getElementById('statsOut'), pager = document.getElementById('pager'), note = document.getElementById('minNote');
+  if (!STATS_READY) {
+    out.innerHTML = '<p class="empty">Player stats will appear here once the season tips off and box scores start coming in.</p>';
+    pager.style.display = 'none'; note.style.display = 'none'; return;
+  }
+  var cat = catOf(STATE.cat), built = buildRows(PLAYERS, STATE, TEAM_FINALS), rows = built.rows;
+  var cols = columns(cat);
+  if (STATE.team) note.style.display = 'none';
+  else {
+    note.style.display = '';
+    note.innerHTML = '<b>Minimums:</b> played at least half of the team\'s games' +
+      (cat.made ? ', and at least ' + MIN_ATTEMPTS_PER_GAME[cat.id] + ' ' + cat.att.replace('A', ' attempts') + ' per team game' : '') + '. Pick a team to see every player.';
+  }
+  if (!rows.length) {
+    out.innerHTML = '<p class="empty">No players meet the minimums for this view yet.</p>'; pager.style.display = 'none'; return;
+  }
+  var pages = Math.ceil(rows.length / PAGE_SIZE);
+  if (STATE.page > pages) STATE.page = pages;
+  var slice = rows.slice((STATE.page - 1) * PAGE_SIZE, STATE.page * PAGE_SIZE);
+  out.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Player</th><th>Team</th><th>Gr.</th>' +
+    cols.map(function (c) {
+      return '<th class="num sortable' + (c[0] === built.sortKey ? ' sorted' : '') + '" data-sort="' + c[0] + '">' + c[1] + (c[0] === built.sortKey ? ' &#9660;' : '') + '</th>';
+    }).join('') + '</tr></thead><tbody>' +
+    slice.map(function (r) {
+      var p = r.p;
+      return '<tr><td class="rank">' + r.rank + '</td><td><b>' + VBN.esc(p.player) + '</b>' + (p.number ? ' <span class="dim">#' + VBN.esc(p.number) + '</span>' : '') + '</td>' +
+        '<td><span class="tcell">' + VBN.crestHTML(p.team, p.gender) + VBN.esc(VBN.displayName(p.team, p.gender)) + '</span></td>' +
+        '<td class="dim">' + (p.grade || '&ndash;') + '</td>' +
+        cols.map(function (c) { return '<td class="num' + (c[0] === built.sortKey ? ' hl' : '') + '">' + c[3](r[c[0]]) + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody></table></div>';
+  pager.style.display = pages > 1 ? '' : 'none';
+  document.getElementById('pageInfo').textContent = 'Page ' + STATE.page + ' of ' + pages;
+  document.getElementById('prevBtn').disabled = STATE.page <= 1;
+  document.getElementById('nextBtn').disabled = STATE.page >= pages;
+}
+
+function syncControls() {
+  document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
+  document.querySelectorAll('#divTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.d === STATE.d); });
+  document.getElementById('catTabs').innerHTML = CATS.map(function (c) {
+    return '<button class="tab' + (c.id === STATE.cat ? ' active' : '') + '" data-c="' + c.id + '">' + c.label + '</button>';
+  }).join('');
+  var seen = {};
+  SCHEDULE.forEach(function (g) {
+    if (String(g.Gender).toUpperCase() !== STATE.g) return;
+    [g.Team1, g.Team2].forEach(function (t) {
+      if (t && VBN.isMember(t, STATE.g) && (!STATE.d || VBN.leagueOf(t, STATE.g) === STATE.d)) seen[t] = true;
+    });
+  });
+  var names = Object.keys(seen).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+  if (STATE.team && names.indexOf(STATE.team) === -1) STATE.team = '';
+  document.getElementById('teamSelect').innerHTML = '<option value="">All teams</option>' + names.map(function (n) {
+    return '<option value="' + VBN.esc(n) + '"' + (n === STATE.team ? ' selected' : '') + '>' + VBN.esc(VBN.displayName(n, STATE.g)) + '</option>';
+  }).join('');
+}
+// Any change to filters, category, or sort goes back to page 1.
+function update(keepSort) { if (!keepSort) STATE.sort = null; STATE.page = 1; syncControls(); render(); }
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('statistics.html');
+  document.getElementById('genderTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; update(); } });
+  document.getElementById('divTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.d = b.dataset.d; update(true); } });
+  document.getElementById('catTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.cat = b.dataset.c; update(); } });
+  document.getElementById('teamSelect').addEventListener('change', function (e) { STATE.team = e.target.value; update(true); });
+  document.getElementById('statsOut').addEventListener('click', function (e) {
+    var th = e.target.closest('th.sortable'); if (!th) return;
+    STATE.sort = th.dataset.sort; STATE.page = 1; render();
+  });
+  document.getElementById('prevBtn').addEventListener('click', function () { STATE.page--; render(); });
+  document.getElementById('nextBtn').addEventListener('click', function () { STATE.page++; render(); });
+  syncControls();
+
+  // Four sources at once. Stats and Roster are optional: a missing roster only means names are not tidied.
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('stats'), VBN.loadSource('roster')]).then(function (res) {
+    SCHEDULE = res[1].status === 'fulfilled' ? res[1].value : [];
+    TEAM_FINALS = finalsByTeam(SCHEDULE);
+    if (res[2].status === 'fulfilled' && res[2].value.length) {
+      var agg = VBN.aggregateStats(res[2].value, res[3].status === 'fulfilled' ? res[3].value : [], SCHEDULE);
+      agg.warnings.forEach(function (w) { console.warn(w); });
+      PLAYERS = agg.players; STATS_READY = PLAYERS.length > 0;
+    }
+    syncControls(); render();
+  });
+});
+</script>
+</body>
+</html>

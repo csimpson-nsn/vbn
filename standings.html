@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: standings.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Standings | Vermont Basketball Network</title>
+<meta name="description" content="Vermont high school basketball standings: NVAC league records and VPA index points for boys and girls.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- SPONSOR SLOT: standings page banner. Swap the dashed box for a sponsor logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);">Standings Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Standings%20Sponsorship">Sponsor This Page &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">2026-27 Season</span>
+    <h1>Standings &amp; <em>Index Points</em></h1>
+    <p>NVAC view: league records by division. VPA view: teams grouped by playoff division and ranked by index points, the number the VPA uses to seed the tournament. Records count only games marked Final.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+      <div class="tab-row" id="viewTabs" role="group" aria-label="Standings view">
+        <button class="tab" data-v="nvac">NVAC League</button><button class="tab" data-v="vpa">VPA Index</button>
+      </div>
+      <select class="select" id="divSelect" aria-label="Division"></select>
+    </div>
+    <div class="note" id="indexNote" style="display:none;">
+      <b>Index points are unofficial.</b> They are calculated here from the VPA's published point table and games marked Final. Out-of-state games do not count. The official VPA rankings use results submitted by athletic directors, so a number here can differ until those are verified.
+    </div>
+    <div id="standingsOut"><p class="empty">Loading standings&hellip;</p></div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var STATE = { g: 'B', v: 'nvac', div: '' };
+var ROWS = [], TEAM_ROWS = [];
+var NVAC_GROUPS = ['Metro', 'Lake', 'Capital A', 'Capital B', 'Mountain'];
+var VPA_GROUPS = ['I', 'II', 'III', 'IV'];
+
+// NVAC members only, in one gender, each with its standings line.
+function memberLines(S, gender) {
+  return TEAM_ROWS.filter(function (t) {
+    return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && !/no team/i.test(t.Status || '');
+  }).map(function (t) {
+    var line = S[VBN.key(t.Team, gender)] || { w: 0, l: 0, lw: 0, ll: 0, hw: 0, hl: 0, aw: 0, al: 0, pf: 0, pa: 0, gp: 0, index: 0, igp: 0, avg: null, streak: '' };
+    return { t: t, s: line };
+  });
+}
+
+function sortNvac(a, b) {
+  return (VBN.pct(b.s.lw, b.s.ll) - VBN.pct(a.s.lw, a.s.ll)) || (b.s.lw - a.s.lw) ||
+         (VBN.pct(b.s.w, b.s.l) - VBN.pct(a.s.w, a.s.l)) || a.t.Team.localeCompare(b.t.Team);
+}
+function sortVpa(a, b) {
+  var x = a.s.avg === null ? -1 : a.s.avg, y = b.s.avg === null ? -1 : b.s.avg;
+  return (y - x) || (VBN.pct(b.s.w, b.s.l) - VBN.pct(a.s.w, a.s.l)) || a.t.Team.localeCompare(b.t.Team);
+}
+
+function streakCell(s) {
+  if (!s.streak) return '<td class="dim">&ndash;</td>';
+  return '<td class="' + (s.streak[0] === 'W' ? 'streak-w' : 'streak-l') + '">' + s.streak + '</td>';
+}
+function teamCell(x, gender) {
+  return '<td><span class="tcell">' + VBN.crestHTML(x.t.Team, gender) + VBN.esc(VBN.displayName(x.t.Team, gender)) + '</span></td>';
+}
+function idxCell(s) { return s.avg === null ? '<td class="num dim">&ndash;</td>' : '<td class="num hl">' + s.avg.toFixed(3) + '</td>'; }
+
+function nvacTable(group, lines, gender) {
+  var rows = lines.filter(function (x) { return x.t.League === group; }).sort(sortNvac);
+  if (!rows.length) return '';
+  return '<div class="table-title">' + VBN.esc(group) + '<span class="sub">' + rows.length + ' teams</span></div>' +
+    '<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Team</th><th class="num">League</th><th class="num">Overall</th>' +
+    '<th class="num">Home</th><th class="num">Away</th><th class="num">PF</th><th class="num">PA</th><th>Streak</th><th class="num">VPA Div</th><th class="num">Index</th></tr></thead><tbody>' +
+    rows.map(function (x, i) {
+      var s = x.s;
+      return '<tr><td class="rank">' + (i + 1) + '</td>' + teamCell(x, gender) +
+        '<td class="num">' + VBN.recText(s.lw, s.ll) + '</td><td class="num">' + VBN.recText(s.w, s.l) + '</td>' +
+        '<td class="num dim">' + VBN.recText(s.hw, s.hl) + '</td><td class="num dim">' + VBN.recText(s.aw, s.al) + '</td>' +
+        '<td class="num dim">' + s.pf + '</td><td class="num dim">' + s.pa + '</td>' + streakCell(s) +
+        '<td class="num dim">' + (VBN.esc(x.t.VPADiv) || '&ndash;') + '</td>' + idxCell(s) + '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function vpaTable(div, lines, gender) {
+  var rows = lines.filter(function (x) { return String(x.t.VPADiv).trim().toUpperCase() === div; }).sort(sortVpa);
+  if (!rows.length) return '';
+  return '<div class="table-title">Division ' + div + '<span class="sub">' + rows.length + ' NVAC teams, ranked by index average</span></div>' +
+    '<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Team</th><th class="num">Index Avg</th><th class="num">Index Pts</th>' +
+    '<th class="num">Games Counted</th><th class="num">Overall</th><th>NVAC</th><th>Streak</th></tr></thead><tbody>' +
+    rows.map(function (x, i) {
+      var s = x.s;
+      return '<tr><td class="rank">' + (s.avg === null ? '&ndash;' : i + 1) + '</td>' + teamCell(x, gender) + idxCell(s) +
+        '<td class="num dim">' + (s.igp ? (Math.round(s.index * 100) / 100) : '&ndash;') + '</td><td class="num dim">' + s.igp + '</td>' +
+        '<td class="num">' + VBN.recText(s.w, s.l) + '</td><td class="dim">' + VBN.esc(x.t.League || '') + '</td>' + streakCell(s) + '</tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function render() {
+  var out = document.getElementById('standingsOut');
+  var lines = memberLines(VBN.standings(ROWS), STATE.g);
+  var groups = STATE.v === 'vpa' ? VPA_GROUPS : NVAC_GROUPS;
+  var pick = STATE.div ? [STATE.div] : groups;
+  var html = pick.map(function (d) { return STATE.v === 'vpa' ? vpaTable(d, lines, STATE.g) : nvacTable(d, lines, STATE.g); }).join('');
+  out.innerHTML = html || '<p class="empty">No teams to show for this selection.</p>';
+  var noGames = !ROWS.some(function (g) { return VBN.isFinal(g) && String(g.Gender).toUpperCase() === STATE.g; });
+  if (html && noGames) out.insertAdjacentHTML('afterbegin', '<p class="empty" style="padding-top:0;">No games are final yet. Records fill in as scores are marked Final.</p>');
+}
+
+function syncControls() {
+  document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
+  document.querySelectorAll('#viewTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.v === STATE.v); });
+  var groups = STATE.v === 'vpa' ? VPA_GROUPS : NVAC_GROUPS;
+  if (groups.indexOf(STATE.div) === -1) STATE.div = '';
+  document.getElementById('divSelect').innerHTML = '<option value="">All divisions</option>' + groups.map(function (d) {
+    return '<option value="' + d + '"' + (d === STATE.div ? ' selected' : '') + '>' + (STATE.v === 'vpa' ? 'Division ' + d : d) + '</option>';
+  }).join('');
+  document.getElementById('indexNote').style.display = STATE.v === 'vpa' ? '' : 'none';
+  var p = new URLSearchParams({ g: STATE.g, view: STATE.v }); if (STATE.div) p.set('div', STATE.div);
+  history.replaceState(null, '', location.pathname + '?' + p);
+}
+function update() { syncControls(); render(); }
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('standings.html');
+  var p = new URLSearchParams(location.search);
+  if (/^[BG]$/.test(p.get('g') || '')) STATE.g = p.get('g');
+  if (p.get('view') === 'vpa') STATE.v = 'vpa';
+  STATE.div = p.get('div') || '';
+  document.getElementById('genderTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; update(); } });
+  document.getElementById('viewTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.v = b.dataset.v; STATE.div = ''; update(); } });
+  document.getElementById('divSelect').addEventListener('change', function (e) { STATE.div = e.target.value; update(); });
+  syncControls();
+
+  // Standings need both tabs: Teams says who is in which division, Schedule holds the results.
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
+    if (res[0].status === 'rejected' || res[1].status === 'rejected') {
+      console.error(res[0].reason || res[1].reason);
+      document.getElementById('standingsOut').innerHTML = '<p class="empty">Standings could not load right now. Please try again in a minute.</p>';
+      return;
+    }
+    TEAM_ROWS = res[0].value; ROWS = res[1].value;
+    render();
+  });
+});
+</script>
+</body>
+</html>

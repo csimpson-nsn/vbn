@@ -1,3 +1,4 @@
+/* VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: assets/vbn.css */
 /* Vermont Basketball Network: shared styles for every page.
    Change a color here and it changes everywhere. */
 :root{
@@ -139,3 +140,27 @@ img.crest{object-fit:contain;background:#fff;padding:2px;}
 .footer-col a:hover{opacity:1;color:var(--green-light);}
 .footer-col p{color:var(--steel);font-size:.88rem;line-height:1.6;max-width:300px;margin-top:12px;}
 .footer-bottom{border-top:1px solid #1a1a1d;margin-top:24px;padding-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:'Barlow Condensed',sans-serif;font-size:.8rem;color:var(--steel);}
+
+/* tables: standings and stats */
+.table-wrap{overflow-x:auto;border:1px solid var(--line);background:var(--court);margin-bottom:28px;}
+.data-table{width:100%;border-collapse:collapse;font-family:'Barlow Condensed',sans-serif;min-width:560px;}
+.data-table th{text-align:left;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--steel);padding:11px 12px;border-bottom:1px solid var(--line);white-space:nowrap;font-weight:600;}
+.data-table th.num,.data-table td.num{text-align:right;}
+.data-table th.sortable{cursor:pointer;user-select:none;}
+.data-table th.sortable:hover{color:var(--snow);}
+.data-table th.sorted{color:var(--yellow);}
+.data-table td{padding:11px 12px;border-bottom:1px solid #1a1a1d;font-size:.95rem;font-weight:500;white-space:nowrap;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tbody tr:hover td{background:var(--raised);}
+.data-table td.rank{color:var(--steel);width:34px;}
+.data-table td.hl{color:var(--yellow);font-weight:700;}
+.data-table td.dim{color:var(--steel);}
+.tcell{display:flex;align-items:center;gap:10px;font-weight:600;}
+.table-title{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.06em;font-size:1.05rem;color:var(--yellow);margin:6px 0 10px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;}
+.table-title .sub{color:var(--steel);font-size:.8rem;font-weight:600;letter-spacing:.04em;}
+.streak-w{color:var(--green-light);} .streak-l{color:var(--live);}
+.note{border-left:3px solid var(--hoop);background:var(--court);padding:12px 16px;color:var(--steel);font-size:.9rem;line-height:1.5;margin-bottom:24px;}
+.note b{color:var(--snow);}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin:-12px 0 28px;font-family:'Barlow Condensed',sans-serif;color:var(--steel);}
+.pager button{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;background:var(--court);color:var(--snow);border:1px solid var(--line);padding:7px 14px;cursor:pointer;}
+.pager button:disabled{opacity:.35;cursor:default;}

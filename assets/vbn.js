@@ -1,3 +1,4 @@
+/* VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: assets/vbn.js */
 /* Vermont Basketball Network: shared code for every page.
  *
  * Holds the things every page needs, so a fix is made once:
@@ -15,7 +16,9 @@ var VBN = (function () {
   // When you add a tab, add it here AND in data-cache.php.
   var GOOGLE = {
     schedule: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=0&single=true&output=csv',
-    teams:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv'
+    teams:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv',
+    stats:    '',   // paste the published Stats tab link here once the tab exists
+    roster:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv'
   };
 
   var CONTACT = 'csimpson@nsnsports.net';
@@ -171,6 +174,145 @@ var VBN = (function () {
     return rec;
   }
 
+  /* ---------- VPA index points ----------
+     From the VPA "Index Points Explained" document. Points depend on the opponent's division compared
+     to yours, and on whether you were home or away: [home, away].
+     The doc's second table (0.5 home / 1 away vs a higher division) is read as LOSS points.
+     That reading, and treating neutral-site games as away for both teams, are NOT yet verified
+     against official VPA standings. Change a number here and every page follows. */
+  var INDEX_POINTS = {
+    win:  { higher: [5, 6], same: [4, 5], lower1: [3.5, 4.5], lower2: [2, 3] },
+    loss: { higher: [0.5, 1], same: [0, 0], lower1: [0, 0], lower2: [0, 0] }
+  };
+  var DIV_NUM = { 'I': 1, 'II': 2, 'III': 3, 'IV': 4 };
+  function vpaDiv(name, gender) { var t = team(name, gender); return t ? String(t.VPADiv || '').trim().toUpperCase() : ''; }
+  function divBand(own, opp) {        // opp minus own: negative means the opponent is in a higher (bigger-school) division
+    var d = opp - own;
+    return d < 0 ? 'higher' : d === 0 ? 'same' : d === 1 ? 'lower1' : 'lower2';
+  }
+  // Why a final game does or does not count toward index points. '' means it counts.
+  function indexSkipReason(g) {
+    var gn = String(g.Gender || '').toUpperCase();
+    var a = team(g.Team1, gn), b = team(g.Team2, gn);
+    if (!a || !b) return 'unknown team';
+    if (a.State !== 'VT' || b.State !== 'VT') return 'out of state';
+    if (/jv/i.test(a.Status || '') || /jv/i.test(b.Status || '')) return 'JV only';
+    if (!DIV_NUM[vpaDiv(g.Team1, gn)] || !DIV_NUM[vpaDiv(g.Team2, gn)]) return 'no VPA division';
+    return '';
+  }
+
+  /* ---------- standings ----------
+     One entry per team|gender for every team on the schedule. Only Final games count.
+     index: VPA index points total, igp: games counted for the index, avg: index average (null until a game counts). */
+  function standings(rows) {
+    var S = {};
+    function get(name, gn) {
+      var k = key(name, gn);
+      if (!S[k]) S[k] = { team: name, gender: gn, w: 0, l: 0, lw: 0, ll: 0, hw: 0, hl: 0, aw: 0, al: 0,
+                          pf: 0, pa: 0, gp: 0, index: 0, igp: 0, avg: null, results: [] };
+      return S[k];
+    }
+    var finals = rows.filter(function (g) { return isFinal(g); })
+      .sort(function (a, b) { return sortTime(a) - sortTime(b); });
+    rows.forEach(function (g) { var gn = String(g.Gender || '').toUpperCase(); [g.Team1, g.Team2].forEach(function (t) { if (t && t !== 'TBA') get(t, gn); }); });
+    finals.forEach(function (g) {
+      var gn = String(g.Gender || '').toUpperCase();
+      var s1 = num(g.Team1Score), s2 = num(g.Team2Score);
+      if (s1 === null || s2 === null || s1 === s2 || !g.Team1 || !g.Team2 || g.Team2 === 'TBA') return;
+      var neutral = String(g.Neutral || '').trim().toLowerCase() === 'yes';
+      var league = String(g.League || '').trim().toLowerCase() === 'yes';
+      var skip = indexSkipReason(g);
+      [[g.Team1, g.Team2, s1, s2, 0], [g.Team2, g.Team1, s2, s1, 1]].forEach(function (p) {
+        var r = get(p[0], gn), won = p[2] > p[3];
+        r.gp++; r.pf += p[2]; r.pa += p[3];
+        r[won ? 'w' : 'l']++;
+        if (league) r[won ? 'lw' : 'll']++;
+        if (!neutral) r[(p[4] === 0 ? 'h' : 'a') + (won ? 'w' : 'l')]++;
+        r.results.push(won ? 'W' : 'L');
+        if (!skip) {
+          var loc = neutral ? 1 : p[4];
+          var band = divBand(DIV_NUM[vpaDiv(p[0], gn)], DIV_NUM[vpaDiv(p[1], gn)]);
+          r.index += INDEX_POINTS[won ? 'win' : 'loss'][band][loc];
+          r.igp++;
+        }
+      });
+    });
+    Object.keys(S).forEach(function (k) {
+      var r = S[k];
+      r.avg = r.igp ? r.index / r.igp : null;
+      var last = r.results[r.results.length - 1], n = 0;
+      for (var i = r.results.length - 1; i >= 0 && r.results[i] === last; i--) n++;
+      r.streak = last ? last + n : '';
+    });
+    return S;
+  }
+  function pct(w, l) { return w + l ? w / (w + l) : 0; }
+  function recText(w, l) { return w + '-' + l; }
+
+  /* ---------- player stats ----------
+     Stats tab: one row per player per game. GameID ties each row to a Schedule game (date, opponent).
+     A blank cell means "not tracked that game", which is different from 0. Per-game averages use only
+     the games where that stat was entered, so a team that only reports points is not dragged down. */
+  var STAT_COLS = ['PTS', 'FGM', 'FGA', '3PM', '3PA', 'FTM', 'FTA', 'REB', 'AST', 'STL', 'BLK'];
+  function gradeLabel(gradYear) {
+    var y = parseInt(gradYear, 10);
+    if (!y) return '';
+    return { 1: 'Sr.', 2: 'Jr.', 3: 'So.', 4: 'Fr.' }[y - SEASON_YEAR] || '';
+  }
+  function fixCase(name) {
+    var s = String(name || '').trim().replace(/\s+/g, ' ');
+    if (s !== s.toUpperCase() && s !== s.toLowerCase()) return s;     // mixed case typed on purpose (DiZoglio): leave it
+    return s.toLowerCase().replace(/(^|[\s\-'])([a-z])/g, function (m, p, c) { return p + c.toUpperCase(); });
+  }
+  // Returns { players: [...], warnings: [...] }
+  function aggregateStats(statRows, rosterRows, scheduleRows) {
+    var roster = {}, games = {}, P = {}, warnings = [];
+    (rosterRows || []).forEach(function (r) {
+      var gn = String(r.Gender || '').toUpperCase();
+      if (r.Team && r.Player) roster[key(r.Team, gn) + '|' + norm(r.Player)] = r;
+    });
+    (scheduleRows || []).forEach(function (g) { if (g.GameID) games[String(g.GameID).trim().toUpperCase()] = g; });
+    (statRows || []).forEach(function (r, i) {
+      // GameID can be typed bare (B001) or picked from a dropdown label like "12/11 Milton vs Peoples (B001)".
+      var idm = String(r.GameID || '').toUpperCase().match(/\b([BG]\d{3,})\b/);
+      var id = idm ? idm[1] : String(r.GameID || '').trim().toUpperCase(), g = games[id];
+      if (!r.Player || !r.Team) return;
+      if (!g) { warnings.push('Stats row ' + (i + 2) + ': GameID "' + r.GameID + '" is not on the Schedule tab'); return; }
+      var gn = String(g.Gender || '').toUpperCase();
+      if (norm(r.Team) !== norm(g.Team1) && norm(r.Team) !== norm(g.Team2)) {
+        warnings.push('Stats row ' + (i + 2) + ': ' + r.Team + ' did not play in ' + id); return;
+      }
+      var teamName = norm(r.Team) === norm(g.Team1) ? g.Team1 : g.Team2;
+      var rk = key(teamName, gn) + '|' + norm(r.Player), ros = roster[rk];
+      if (!P[rk]) P[rk] = { team: teamName, gender: gn, player: ros ? ros.Player.trim() : fixCase(r.Player),
+                            number: (ros && ros.Number) || r.Number || '', grade: ros ? gradeLabel(ros.GradYear) : '',
+                            position: (ros && ros.Position) || '', gp: 0, tot: {}, tracked: {}, gameIds: {} };
+      var p = P[rk];
+      if (p.gameIds[id]) { warnings.push('Stats row ' + (i + 2) + ': ' + p.player + ' is entered twice for ' + id); return; }
+      p.gameIds[id] = true; p.gp++;
+      [['FGM', 'FGA'], ['3PM', '3PA'], ['FTM', 'FTA'], ['3PM', 'FGM']].forEach(function (x) {
+        var a = num(r[x[0]]), b = num(r[x[1]]);
+        if (a !== null && b !== null && a > b) warnings.push('Stats row ' + (i + 2) + ': ' + x[0] + ' is more than ' + x[1] + ' for ' + p.player + '. Check the headers.');
+      });
+      STAT_COLS.forEach(function (c) {
+        var v = num(r[c]);
+        if (v === null) return;
+        p.tot[c] = (p.tot[c] || 0) + v; p.tracked[c] = (p.tracked[c] || 0) + 1;
+      });
+    });
+    var players = Object.keys(P).map(function (k) {
+      var p = P[k];
+      p.per = {};
+      STAT_COLS.forEach(function (c) { p.per[c] = p.tracked[c] ? p.tot[c] / p.tracked[c] : null; });
+      [['FG', 'FGM', 'FGA'], ['3P', '3PM', '3PA'], ['FT', 'FTM', 'FTA']].forEach(function (x) {
+        var made = p.tot[x[1]] || 0, att = p.tot[x[2]] || 0;
+        p.per[x[0] + '%'] = att ? made / att : null;
+      });
+      return p;
+    });
+    return { players: players, warnings: warnings };
+  }
+
   /* ---------- game card ----------
      opts.scores: show scores and W/L (homepage, scores pages). The schedule page leaves them off
      on purpose, because a score typed mid-game looks like a final there.
@@ -250,7 +392,7 @@ var VBN = (function () {
   }
 
   /* ---------- header and footer ---------- */
-  var NAV = [['index.html', 'Home'], ['schedule.html', 'Schedule']];   // add pages here as they are built
+  var NAV = [['index.html', 'Home'], ['schedule.html', 'Schedule'], ['standings.html', 'Standings'], ['statistics.html', 'Statistics']];   // add pages here as they are built
 
   function renderChrome(active) {
     var h = document.getElementById('site-header');
@@ -278,7 +420,7 @@ var VBN = (function () {
       f.innerHTML = '<div class="wrap"><div class="footer-grid">' +
         '<div class="footer-col"><a href="index.html" class="logo" style="font-size:1.15rem;opacity:1;"><span class="ball" style="width:26px;height:26px;"></span>VBN</a>' +
           '<p>A Northeast Sports Network production. Vermont high school basketball, every tip-off, every gym.</p></div>' +
-        '<div class="footer-col"><h4>Watch</h4><a href="schedule.html">Full Schedule</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a></div>' +
+        '<div class="footer-col"><h4>Network</h4><a href="schedule.html">Full Schedule</a><a href="standings.html">Standings</a><a href="statistics.html">Statistics</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a></div>' +
         '<div class="footer-col"><h4>Partner With Us</h4><a href="mailto:' + CONTACT + '?subject=VBN%20Sponsorship">Sponsorship Packages</a><a href="mailto:' + CONTACT + '?subject=VBN%20Title%20Sponsor">Title Sponsor Inquiry</a></div>' +
         '<div class="footer-col"><h4>Follow Us</h4><a href="https://www.facebook.com/nsnsports" target="_blank" rel="noopener">Facebook</a><a href="https://www.instagram.com/nsnsports" target="_blank" rel="noopener">Instagram</a><a href="https://www.youtube.com/@nsnsportsvt" target="_blank" rel="noopener">YouTube</a></div>' +
         '</div><div class="footer-bottom"><span>&copy; ' + new Date().getFullYear() + ' Northeast Sports Network. All rights reserved.</span><span>VBN: Vermont Basketball Network</span></div></div>';
@@ -288,10 +430,12 @@ var VBN = (function () {
   return {
     SEASON_YEAR: SEASON_YEAR, CONTACT: CONTACT,
     esc: esc, parseCSV: parseCSV, loadSource: loadSource, loadTeams: loadTeams, setTeams: setTeams,
-    team: team, displayName: displayName, leagueOf: leagueOf, isMember: isMember, key: key, norm: norm,
+    team: team, displayName: displayName, crestHTML: crestHTML, leagueOf: leagueOf, isMember: isMember, key: key, norm: norm,
     parseDate: parseDate, parseTime: parseTime, timeLabel: timeLabel, gameStart: gameStart, sortTime: sortTime,
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
-    isFinal: isFinal, isLive: isLive, isOff: isOff, computeRecords: computeRecords,
+    isFinal: isFinal, isLive: isLive, isOff: isOff, computeRecords: computeRecords, num: num,
+    INDEX_POINTS: INDEX_POINTS, vpaDiv: vpaDiv, indexSkipReason: indexSkipReason, standings: standings, pct: pct, recText: recText,
+    STAT_COLS: STAT_COLS, gradeLabel: gradeLabel, fixCase: fixCase, aggregateStats: aggregateStats,
     gameCardHTML: gameCardHTML, wireCards: wireCards, renderChrome: renderChrome
   };
 })();
