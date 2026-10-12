@@ -72,28 +72,23 @@ var VPA_GROUPS = ['I', 'II', 'III', 'IV'];
 // NVAC members only, in one gender, each with its standings line.
 function memberLines(S, gender) {
   return TEAM_ROWS.filter(function (t) {
-    return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && !/no team/i.test(t.Status || '');
+    return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && !/no team|jv/i.test(t.Status || '');
   }).map(function (t) {
     var line = S[VBN.key(t.Team, gender)] || { w: 0, l: 0, lw: 0, ll: 0, hw: 0, hl: 0, aw: 0, al: 0, pf: 0, pa: 0, gp: 0, index: 0, igp: 0, avg: null, streak: '' };
     return { t: t, s: line };
   });
 }
 
-function sortNvac(a, b) {
-  return (VBN.pct(b.s.lw, b.s.ll) - VBN.pct(a.s.lw, a.s.ll)) || (b.s.lw - a.s.lw) ||
-         (VBN.pct(b.s.w, b.s.l) - VBN.pct(a.s.w, a.s.l)) || a.t.Team.localeCompare(b.t.Team);
-}
-function sortVpa(a, b) {
-  var x = a.s.avg === null ? -1 : a.s.avg, y = b.s.avg === null ? -1 : b.s.avg;
-  return (y - x) || (VBN.pct(b.s.w, b.s.l) - VBN.pct(a.s.w, a.s.l)) || a.t.Team.localeCompare(b.t.Team);
-}
+// Same order the team pages use (shared in vbn.js), so a team's place matches everywhere.
+function sortNvac(a, b) { return VBN.sortLeague(a.s, b.s) || a.t.Team.localeCompare(b.t.Team); }
+function sortVpa(a, b) { return VBN.sortIndex(a.s, b.s) || a.t.Team.localeCompare(b.t.Team); }
 
 function streakCell(s) {
   if (!s.streak) return '<td class="dim">&ndash;</td>';
   return '<td class="' + (s.streak[0] === 'W' ? 'streak-w' : 'streak-l') + '">' + s.streak + '</td>';
 }
 function teamCell(x, gender) {
-  return '<td><span class="tcell">' + VBN.crestHTML(x.t.Team, gender) + VBN.esc(VBN.displayName(x.t.Team, gender)) + '</span></td>';
+  return '<td><a class="tcell tlink" href="team.html?team=' + encodeURIComponent(x.t.Team) + '&g=' + gender + '">' + VBN.crestHTML(x.t.Team, gender) + VBN.esc(VBN.displayName(x.t.Team, gender)) + '</a></td>';
 }
 function idxCell(s) { return s.avg === null ? '<td class="num dim">&ndash;</td>' : '<td class="num hl">' + s.avg.toFixed(3) + '</td>'; }
 

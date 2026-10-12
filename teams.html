@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: teams.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Teams | Vermont Basketball Network</title>
+<meta name="description" content="Every NVAC boys and girls basketball team: records, schedules, rosters, and stats.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- SPONSOR SLOT: teams page banner. Swap the dashed box for a sponsor logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);">Teams Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Teams%20Sponsorship">Sponsor This Page &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">2026-27 Season</span>
+    <h1>All <em>Teams</em></h1>
+    <p>Every NVAC program, boys and girls. Pick a team for its schedule, results, roster, and rankings.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+    </div>
+    <div id="teamsOut"><p class="empty">Loading teams&hellip;</p></div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var GROUPS = ['Metro', 'Lake', 'Capital A', 'Capital B', 'Mountain'];
+var STATE = { g: 'B' }, TEAM_ROWS = [], STANDINGS = {};
+
+function logoTile(t) {
+  if (t.LogoPath) return '<span class="logo-tile"><img src="' + VBN.esc(t.LogoPath) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'"></span>';
+  var c = /^#[0-9a-f]{6}$/i.test(t.PrimaryColor || '') ? t.PrimaryColor : '#3a3a3e';
+  return '<span class="swatch" style="background:' + c + '"></span>';
+}
+
+// One card per NVAC team in the chosen gender, grouped by league. A team with no program that season is left out.
+function cardsFor(group, gender) {
+  var list = TEAM_ROWS.filter(function (t) {
+    return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && t.League === group && !/no team/i.test(t.Status || '');
+  }).sort(function (a, b) { return VBN.displayName(a.Team, gender).localeCompare(VBN.displayName(b.Team, gender)); });
+  if (!list.length) return '';
+  return '<div class="table-title">' + VBN.esc(group) + '<span class="sub">' + list.length + ' teams</span></div><div class="teams-grid">' +
+    list.map(function (t) {
+      var s = STANDINGS[VBN.key(t.Team, gender)] || { w: 0, l: 0, lw: 0, ll: 0 };
+      var meta = [t.Mascot, t.VPADiv ? 'Division ' + t.VPADiv : '', /jv/i.test(t.Status || '') ? 'JV only' : ''].filter(Boolean).join(' &middot; ');
+      return '<a class="team-card" href="team.html?team=' + encodeURIComponent(t.Team) + '&g=' + gender + '">' + logoTile(t) +
+        '<span><h3>' + VBN.esc(VBN.displayName(t.Team, gender)) + '</h3><div class="meta">' + meta + '</div>' +
+        '<div class="rec">' + VBN.recText(s.w, s.l) + ' <span class="muted" style="font-weight:500;">(' + VBN.recText(s.lw, s.ll) + ' league)</span></div></span></a>';
+    }).join('') + '</div>';
+}
+
+function render() {
+  document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
+  history.replaceState(null, '', location.pathname + '?g=' + STATE.g);
+  var html = GROUPS.map(function (g) { return cardsFor(g, STATE.g); }).join('');
+  document.getElementById('teamsOut').innerHTML = html || '<p class="empty">No teams found.</p>';
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('teams.html');
+  var p = new URLSearchParams(location.search);
+  if (/^[BG]$/.test(p.get('g') || '')) STATE.g = p.get('g');
+  document.getElementById('genderTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; render(); } });
+  // Records are optional here: if the schedule fails, cards still show with 0-0.
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
+    if (res[0].status === 'rejected') {
+      document.getElementById('teamsOut').innerHTML = '<p class="empty">Teams could not load right now. Please try again in a minute.</p>';
+      return;
+    }
+    TEAM_ROWS = res[0].value;
+    STANDINGS = res[1].status === 'fulfilled' ? VBN.standings(res[1].value) : {};
+    render();
+  });
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: team.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Team | Vermont Basketball Network</title>
+<meta name="description" content="Vermont high school basketball team page: schedule, results, roster, stats, and rankings.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- SPONSOR SLOT: team pages banner (one slot shared by every team page). -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);">Team Pages Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Team%20Page%20Sponsorship">Sponsor This Page &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <div class="team-hero" id="teamHero"><p class="muted">Loading team&hellip;</p></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+      <a href="teams.html" class="link">All Teams &rarr;</a>
+    </div>
+    <div id="teamOut"></div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var STATE = { team: '', g: 'B' };
+var TEAM_ROWS = [], SCHEDULE = [], ROSTER = [], STATS = [];
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+function hasProgram(team, g) { var t = VBN.team(team, g); return !!t && !/no team/i.test(t.Status || ''); }
+
+function heroHTML(t, s, g) {
+  var art = t.LogoPath
+    ? '<span class="big-logo"><img src="' + VBN.esc(t.LogoPath) + '" alt="' + VBN.esc(VBN.displayName(t.Team, g)) + ' logo" onerror="this.style.visibility=\'hidden\'"></span>'
+    : '<span class="big-swatch" style="background:' + (/^#[0-9a-f]{6}$/i.test(t.PrimaryColor || '') ? t.PrimaryColor : '#3a3a3e') + '"></span>';
+  var facts = [
+    ['Overall', VBN.recText(s.w, s.l)],
+    t.League ? ['League', VBN.recText(s.lw, s.ll) + ' ' + t.League] : null,
+    t.VPADiv ? ['VPA', 'Division ' + t.VPADiv] : null,
+    t.Coach ? ['Coach', t.Coach] : null,
+    s.streak ? ['Streak', s.streak] : null
+  ].filter(Boolean);
+  return art + '<div><span class="eyebrow">' + (g === 'G' ? 'Girls' : 'Boys') + ' Basketball' + (t.Mascot ? ' &middot; ' + VBN.esc(t.Mascot) : '') + '</span>' +
+    '<h1 style="margin-top:8px;">' + VBN.esc(VBN.displayName(t.Team, g)) + '</h1>' +
+    '<div class="facts">' + facts.map(function (f) { return '<span>' + f[0] + ' <b>' + VBN.esc(f[1]) + '</b></span>'; }).join('') + '</div>' +
+    (/jv/i.test(t.Status || '') ? '<p style="margin-top:10px;">JV only this season. Games do not count toward standings or index points.</p>' : '') + '</div>';
+}
+
+function placeText(n) { return n ? VBN.ordinal(n) : '&ndash;'; }
+
+function rankHTML(t, r) {
+  if (!r) return '';
+  var box = function (label, big, small, lines) {
+    return '<div class="rank-box"><div class="label">' + label + '</div><div class="big">' + big + (small ? '<small>' + small + '</small>' : '') + '</div>' +
+      (lines ? '<div class="lines">' + lines + '</div>' : '') + '</div>';
+  };
+  var both = function (lr, dr) {
+    return '<b>' + placeText(lr) + '</b> in ' + VBN.esc(r.league || 'league') + (r.div ? ' &middot; <b>' + placeText(dr) + '</b> in Division ' + VBN.esc(r.div) : '');
+  };
+  var s = r.s;
+  return '<div class="rank-grid">' +
+    box('League Standing', placeText(r.leaguePlace), 'of ' + r.leagueSize + ' in ' + VBN.esc(r.league), 'League record ' + VBN.recText(s.lw, s.ll)) +
+    box('Division Standing', placeText(r.divPlace), r.div ? 'of ' + r.divSize + ' NVAC teams in Div. ' + VBN.esc(r.div) : '',
+        s.avg === null ? 'No index games yet' : 'Index average <b>' + s.avg.toFixed(3) + '</b> (unofficial)') +
+    box('Points Per Game', r.ppg === null ? '&ndash;' : r.ppg.toFixed(1), '', r.ppg === null ? 'No final games yet' : both(r.leaguePpgRank, r.divPpgRank)) +
+    box('Points Allowed', r.oppg === null ? '&ndash;' : r.oppg.toFixed(1), '', r.oppg === null ? 'No final games yet' : both(r.leagueOppgRank, r.divOppgRank)) +
+    '</div>';
+}
+
+function scheduleRows(team, g) {
+  return SCHEDULE.filter(function (x) {
+    return String(x.Gender).toUpperCase() === g && (VBN.norm(x.Team1) === VBN.norm(team) || VBN.norm(x.Team2) === VBN.norm(team));
+  }).sort(function (a, b) { return VBN.sortTime(a) - VBN.sortTime(b); });
+}
+
+function scheduleHTML(team, g) {
+  var games = scheduleRows(team, g);
+  if (!games.length) return '<div class="table-title">Schedule</div><p class="empty">No games on the schedule yet.</p>';
+  return '<div class="table-title">Schedule &amp; Results<span class="sub">' + games.length + ' games</span></div><div class="table-wrap"><table class="data-table"><thead><tr>' +
+    '<th>Date</th><th>Opponent</th><th>Result</th><th>Game</th></tr></thead><tbody>' +
+    games.map(function (x) {
+      var home = VBN.norm(x.Team1) === VBN.norm(team), opp = home ? x.Team2 : x.Team1;
+      var neutral = String(x.Neutral || '').trim().toLowerCase() === 'yes';
+      var d = VBN.parseDate(x.Date);
+      var mine = VBN.num(home ? x.Team1Score : x.Team2Score), theirs = VBN.num(home ? x.Team2Score : x.Team1Score);
+      var result;
+      if (VBN.isFinal(x) && mine !== null && theirs !== null) {
+        result = '<span class="' + (mine > theirs ? 'res-w">W' : 'res-l">L') + '</span> ' + mine + '-' + theirs + (/ot/i.test(x.Quarter) ? ' (OT)' : '');
+      } else if (VBN.isLive(x)) result = '<span class="streak-l"><span class="live-dot"></span>Live ' + VBN.esc(x.Quarter) + '</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
+      else if (VBN.isOff(x)) result = '<span class="dim">' + VBN.esc(x.Quarter) + '</span>';
+      else result = '<span class="dim">' + (VBN.timeLabel(x.Time) || 'TBA') + '</span>';
+      var oppCell = opp === 'TBA' ? 'TBA'
+        : (VBN.isMember(opp, g) ? '<a class="tcell tlink" href="team.html?team=' + encodeURIComponent(opp) + '&g=' + g + '">' : '<span class="tcell">') +
+          VBN.crestHTML(opp, g) + VBN.esc(VBN.displayName(opp, g)) + (VBN.isMember(opp, g) ? '</a>' : '</span>');
+      var lg = String(x.League || '').trim().toLowerCase() === 'yes';
+      return '<tr><td class="dim">' + (d ? ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()] + ' ' + MONTHS[d.getMonth()] + ' ' + d.getDate() : '') + '</td>' +
+        '<td><span class="tcell"><span class="dim" style="width:22px;display:inline-block;">' + (neutral ? 'vs' : home ? 'vs' : '@') + '</span>' + oppCell + '</span></td>' +
+        '<td>' + result + '</td><td class="dim">' + (lg ? 'League' : 'Non-League') + (x.Event ? ' &middot; ' + VBN.esc(x.Event) : '') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function rosterHTML(team, g) {
+  var list = ROSTER.filter(function (r) { return String(r.Gender).toUpperCase() === g && VBN.norm(r.Team) === VBN.norm(team) && r.Player; })
+    .sort(function (a, b) { return (parseInt(a.Number, 10) || 999) - (parseInt(b.Number, 10) || 999); });
+  if (!list.length) return '';
+  return '<div class="table-title">Roster<span class="sub">' + list.length + ' players</span></div><div class="table-wrap"><table class="data-table"><thead><tr>' +
+    '<th>#</th><th>Player</th><th>Gr.</th><th>Pos.</th><th>Ht.</th></tr></thead><tbody>' +
+    list.map(function (r) {
+      return '<tr><td class="rank">' + VBN.esc(r.Number) + '</td><td><b>' + VBN.esc(r.Player) + '</b></td><td class="dim">' + (VBN.gradeLabel(r.GradYear) || '&ndash;') +
+        '</td><td class="dim">' + (VBN.esc(r.Position) || '&ndash;') + '</td><td class="dim">' + (VBN.esc(r.Height) || '&ndash;') + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function statsHTML(team, g) {
+  if (!STATS.length) return '';
+  var players = VBN.aggregateStats(STATS, ROSTER, SCHEDULE).players.filter(function (p) { return p.gender === g && VBN.norm(p.team) === VBN.norm(team); })
+    .sort(function (a, b) { return (b.per.PTS || 0) - (a.per.PTS || 0); });
+  if (!players.length) return '';
+  var f1 = function (v) { return v === null || v === undefined ? '&ndash;' : v.toFixed(1); };
+  var fp = function (v) { return v === null || v === undefined ? '&ndash;' : (v * 100).toFixed(1); };
+  return '<div class="table-title">Team Stats<span class="sub">per game</span></div><div class="table-wrap"><table class="data-table"><thead><tr>' +
+    '<th>Player</th><th class="num">GP</th><th class="num">PPG</th><th class="num">RPG</th><th class="num">APG</th><th class="num">SPG</th><th class="num">BPG</th>' +
+    '<th class="num">FG%</th><th class="num">3P%</th><th class="num">FT%</th></tr></thead><tbody>' +
+    players.map(function (p) {
+      return '<tr><td><b>' + VBN.esc(p.player) + '</b>' + (p.number ? ' <span class="dim">#' + VBN.esc(p.number) + '</span>' : '') + '</td><td class="num">' + p.gp + '</td>' +
+        '<td class="num hl">' + f1(p.per.PTS) + '</td><td class="num">' + f1(p.per.REB) + '</td><td class="num">' + f1(p.per.AST) + '</td><td class="num">' + f1(p.per.STL) +
+        '</td><td class="num">' + f1(p.per.BLK) + '</td><td class="num dim">' + fp(p.per['FG%']) + '</td><td class="num dim">' + fp(p.per['3P%']) + '</td><td class="num dim">' + fp(p.per['FT%']) + '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+function render() {
+  var hero = document.getElementById('teamHero'), out = document.getElementById('teamOut');
+  document.querySelectorAll('#genderTabs .tab').forEach(function (b) {
+    b.classList.toggle('active', b.dataset.g === STATE.g);
+    b.disabled = !hasProgram(STATE.team, b.dataset.g);
+    b.style.opacity = b.disabled ? .35 : 1;
+  });
+  var t = VBN.team(STATE.team, STATE.g);
+  if (!STATE.team || (!VBN.team(STATE.team, 'B') && !VBN.team(STATE.team, 'G'))) {
+    hero.innerHTML = '<div><h1>Team not found</h1><p class="muted" style="margin-top:10px;">Pick a school from the <a class="link" href="teams.html">team list</a>.</p></div>';
+    out.innerHTML = ''; return;
+  }
+  if (!hasProgram(STATE.team, STATE.g)) {
+    hero.innerHTML = '<div><h1>' + VBN.esc(VBN.displayName(STATE.team, STATE.g === 'B' ? 'G' : 'B')) + '</h1></div>';
+    out.innerHTML = '<p class="empty">No ' + (STATE.g === 'G' ? 'girls' : 'boys') + ' varsity team this season.</p>'; return;
+  }
+  document.title = VBN.displayName(t.Team, STATE.g) + ' ' + (STATE.g === 'G' ? 'Girls' : 'Boys') + ' | Vermont Basketball Network';
+  var S = VBN.standings(SCHEDULE), s = S[VBN.key(t.Team, STATE.g)] || { w: 0, l: 0, lw: 0, ll: 0, avg: null, streak: '' };
+  var ranks = VBN.teamRankings(S, TEAM_ROWS, STATE.g), r = ranks[VBN.key(t.Team, STATE.g)];
+  if (r) r.s = s;
+  hero.innerHTML = heroHTML(t, s, STATE.g);
+  out.innerHTML = (t.NVAC === 'Yes' ? rankHTML(t, r) : '') + scheduleHTML(t.Team, STATE.g) + rosterHTML(t.Team, STATE.g) + statsHTML(t.Team, STATE.g);
+  history.replaceState(null, '', location.pathname + '?team=' + encodeURIComponent(t.Team) + '&g=' + STATE.g);
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('teams.html');
+  var p = new URLSearchParams(location.search);
+  STATE.team = p.get('team') || '';
+  if (/^[BG]$/.test(p.get('g') || '')) STATE.g = p.get('g');
+  document.getElementById('genderTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (b && !b.disabled) { STATE.g = b.dataset.g; render(); }
+  });
+  // Teams is required. Schedule, Roster, and Stats are optional: each missing one only hides its section.
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('roster'), VBN.loadSource('stats')]).then(function (res) {
+    if (res[0].status === 'rejected') {
+      document.getElementById('teamHero').innerHTML = '<p class="muted">This team could not load right now. Please try again in a minute.</p>'; return;
+    }
+    TEAM_ROWS = res[0].value;
+    SCHEDULE = res[1].status === 'fulfilled' ? res[1].value : [];
+    ROSTER = res[2].status === 'fulfilled' ? res[2].value : [];
+    STATS = res[3].status === 'fulfilled' ? res[3].value : [];
+    // Opened without a gender, or with one this school does not field: switch to the one it has.
+    if (!hasProgram(STATE.team, STATE.g) && hasProgram(STATE.team, STATE.g === 'B' ? 'G' : 'B')) STATE.g = STATE.g === 'B' ? 'G' : 'B';
+    render();
+  });
+});
+</script>
+</body>
+</html>

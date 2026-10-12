@@ -11,6 +11,9 @@ index.html          Homepage: next game day, live scores refresh every 45 second
 schedule.html       Full schedule with Boys/Girls, NVAC division, VPA division, and team filters
 standings.html      NVAC league standings and VPA index points (unofficial until verified)
 statistics.html     Player stat leaders with minimums, 10 per page
+teams.html          Directory of every NVAC team, Boys/Girls tabs, grouped by league
+team.html           One team page for every school (team.html?team=Lyndon&g=B), Boys/Girls toggle,
+                    league and division standing, PPG and points allowed ranks, schedule, roster, stats
 data-cache.php      Fetches and saves Google Sheet tabs (NSN server only)
 assets/vbn.css      Shared look for every page (colors, header, cards)
 assets/vbn.js       Shared code for every page (data loading, team lookup, game cards, header, footer)
