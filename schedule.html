@@ -73,13 +73,11 @@ function filterGames(rows, st, today) {
     var d = VBN.parseDate(g.Date);
     if (!d) return false;
     if (st.g && String(g.Gender).toUpperCase() !== st.g) return false;
-    if (st.d) {
+    if (st.d || st.vpa) {
+      // One of the two teams has to fit the league AND the division together, so Lake + Div. III
+      // means a Lake team that is also Div. III, not a Lake team playing someone else who is Div. III.
       var gn = String(g.Gender).toUpperCase();
-      if (VBN.leagueOf(g.Team1, gn) !== st.d && VBN.leagueOf(g.Team2, gn) !== st.d) return false;
-    }
-    if (st.vpa) {
-      var gv = String(g.Gender).toUpperCase();
-      if (VBN.vpaDiv(g.Team1, gv) !== st.vpa && VBN.vpaDiv(g.Team2, gv) !== st.vpa) return false;
+      if (!fits(g.Team1, gn, st) && !fits(g.Team2, gn, st)) return false;
     }
     if (st.team) return VBN.norm(g.Team1) === VBN.norm(st.team) || VBN.norm(g.Team2) === VBN.norm(st.team);
     return d >= today;
@@ -99,6 +97,15 @@ function groupByDay(games) {
   return out;
 }
 
+// Does this team fit the league tab and the VPA division picked? Blank filters always fit.
+function fits(name, gender, st) {
+  var t = VBN.team(name, gender);
+  if (!t || !VBN.hasLeague(t) || /no team/i.test(t.Status || '')) return false;
+  if (st.d && VBN.leagueOf(name, gender) !== st.d) return false;
+  if (st.vpa && VBN.vpaDiv(name, gender) !== st.vpa) return false;
+  return true;
+}
+
 // School names for the team picker. Only teams that fit every filter already chosen:
 // the gender, the league tab, and the VPA division. The team itself has to match, not just an opponent,
 // so picking Lake lists Lake teams only. With Both genders, a school is listed if either program fits.
@@ -108,10 +115,7 @@ function teamOptions(rows, st) {
     var gn = String(g.Gender).toUpperCase();
     if (st.g && gn !== st.g) return;
     [g.Team1, g.Team2].forEach(function (t) {
-      if (!t || !VBN.isMember(t, gn)) return;
-      if (st.d && VBN.leagueOf(t, gn) !== st.d) return;
-      if (st.vpa && VBN.vpaDiv(t, gn) !== st.vpa) return;
-      seen[t] = true;
+      if (t && fits(t, gn, st)) seen[t] = true;
     });
   });
   return Object.keys(seen).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });

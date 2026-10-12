@@ -497,7 +497,9 @@ var VBN = (function () {
       f.className = 'site-footer';
       f.innerHTML = '<div class="wrap"><div class="footer-grid">' +
         '<div class="footer-col"><a href="index.html" class="logo" style="font-size:1.15rem;opacity:1;"><span class="ball" style="width:26px;height:26px;"></span>VBN</a>' +
-          '<p>A Northeast Sports Network production. Vermont high school basketball, every tip-off, every gym.</p></div>' +
+          '<p>The home court for Vermont high school basketball: scores, schedules, standings, and stats for boys and girls.</p>' +
+          // NSN credit. The VBN wordmark above is a placeholder until the VBN logo is done; swap it in the header and here.
+          '<a class="nsn-credit" href="https://www.nsnsports.net" target="_blank" rel="noopener"><span>A production of</span><img src="assets/nsn-logo.png" alt="Northeast Sports Network" loading="lazy" onerror="this.style.display=\'none\'"></a></div>' +
         '<div class="footer-col"><h4>Network</h4><a href="schedule.html">Full Schedule</a><a href="standings.html">Standings</a><a href="teams.html">All Teams</a><a href="statistics.html">Statistics</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a></div>' +
         '<div class="footer-col"><h4>Partner With Us</h4><a href="mailto:' + CONTACT + '?subject=VBN%20Sponsorship">Sponsorship Packages</a><a href="mailto:' + CONTACT + '?subject=VBN%20Title%20Sponsor">Title Sponsor Inquiry</a></div>' +
         '<div class="footer-col"><h4>Follow Us</h4><a href="https://www.facebook.com/nsnsports" target="_blank" rel="noopener">Facebook</a><a href="https://www.instagram.com/nsnsports" target="_blank" rel="noopener">Instagram</a><a href="https://www.youtube.com/@nsnsportsvt" target="_blank" rel="noopener">YouTube</a></div>' +

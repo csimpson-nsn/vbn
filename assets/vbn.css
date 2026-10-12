@@ -139,6 +139,11 @@ img.crest{object-fit:contain;background:#fff;padding:2px;}
 .footer-col a{display:block;font-size:.92rem;margin-bottom:9px;opacity:.85;}
 .footer-col a:hover{opacity:1;color:var(--green-light);}
 .footer-col p{color:var(--steel);font-size:.88rem;line-height:1.6;max-width:300px;margin-top:12px;}
+.footer-col a.logo{display:flex;}
+.footer-col a.nsn-credit{display:inline-flex;flex-direction:column;gap:6px;margin-top:16px;opacity:.9;}
+.footer-col a.nsn-credit:hover{opacity:1;}
+.nsn-credit span{font-family:'Barlow Condensed',sans-serif;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);}
+.nsn-credit img{width:120px;height:auto;display:block;}
 .footer-bottom{border-top:1px solid #1a1a1d;margin-top:24px;padding-top:18px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px;font-family:'Barlow Condensed',sans-serif;font-size:.8rem;color:var(--steel);}
 
 /* tables: standings and stats */

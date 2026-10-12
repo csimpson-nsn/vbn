@@ -51,7 +51,7 @@
       <div class="tab-row" id="viewTabs" role="group" aria-label="Standings view">
         <button class="tab" data-v="league">League</button><button class="tab" data-v="vpa">VPA Index</button>
       </div>
-      <select class="select" id="divSelect" aria-label="Division"></select>
+      <select class="select" id="divSelect" aria-label="League or division"></select>
     </div>
     <div class="note" id="indexNote" style="display:none;">
       <b>Index points are unofficial.</b> They are calculated here from the VPA's published point table and games marked Final. Out-of-state games do not count. The official VPA rankings use results submitted by athletic directors, so a number here can differ until those are verified.
@@ -137,7 +137,7 @@ function syncControls() {
   document.querySelectorAll('#viewTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.v === STATE.v); });
   var groups = STATE.v === 'vpa' ? VPA_GROUPS : VBN.leagueList(TEAM_ROWS, STATE.g, false);
   if (TEAM_ROWS.length && groups.indexOf(STATE.div) === -1) STATE.div = '';   // wait for Teams before judging a link's division
-  document.getElementById('divSelect').innerHTML = '<option value="">All divisions</option>' + groups.map(function (d) {
+  document.getElementById('divSelect').innerHTML = '<option value="">' + (STATE.v === 'vpa' ? 'All divisions' : 'All leagues') + '</option>' + groups.map(function (d) {
     return '<option value="' + VBN.esc(d) + '"' + (d === STATE.div ? ' selected' : '') + '>' + (STATE.v === 'vpa' ? 'Division ' + d : VBN.esc(d)) + '</option>';
   }).join('');
   document.getElementById('indexNote').style.display = STATE.v === 'vpa' ? '' : 'none';
