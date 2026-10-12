@@ -13,7 +13,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Schedule | Vermont Basketball Network</title>
-<meta name="description" content="Vermont high school basketball schedule for boys and girls: every NVAC game, by date, division, and team.">
+<meta name="description" content="Vermont high school basketball schedule for boys and girls: every varsity game, by date, league, division, and team.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -38,7 +38,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>Game <em>Schedule</em></h1>
-    <p>Every NVAC boys and girls varsity game, home team listed first. Pick a team to see its whole season. Tip-off times marked by the league as standard host times can change, so check with the school on game day.</p>
+    <p>Every boys and girls varsity game we track, home team listed first. Pick a team to see its whole season. Tip-off times marked by the league as standard host times can change, so check with the school on game day.</p>
   </div>
 </section>
 
@@ -48,8 +48,8 @@
       <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
         <button class="tab" data-g="">Both</button><button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
       </div>
-      <div class="tab-row" id="divTabs" role="group" aria-label="Division">
-        <button class="tab" data-d="">All</button><button class="tab" data-d="Metro">Metro</button><button class="tab" data-d="Lake">Lake</button><button class="tab" data-d="Capital">Capital</button><button class="tab" data-d="Mountain">Mountain</button>
+      <div class="tab-row" id="divTabs" role="group" aria-label="League">
+        <button class="tab" data-d="">All</button>
       </div>
       <select class="select" id="vpaSelect" aria-label="VPA division"><option value="">All VPA divisions</option><option value="I">VPA Division I</option><option value="II">VPA Division II</option><option value="III">VPA Division III</option><option value="IV">VPA Division IV</option></select>
       <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
@@ -65,7 +65,7 @@
 <script>
 var DAYS_PER_PAGE = 10;
 var STATE = { g: '', d: '', vpa: '', team: '', days: DAYS_PER_PAGE };
-var ROWS = [];
+var ROWS = [], TEAM_ROWS = [];
 
 // Which games to show. No team picked: today forward. Team picked: that team's whole season.
 function filterGames(rows, st, today) {
@@ -99,15 +99,31 @@ function groupByDay(games) {
   return out;
 }
 
-// School names for the team picker: NVAC members only, for the chosen gender.
-function teamOptions(rows, gender) {
+// School names for the team picker. Only teams that fit every filter already chosen:
+// the gender, the league tab, and the VPA division. The team itself has to match, not just an opponent,
+// so picking Lake lists Lake teams only. With Both genders, a school is listed if either program fits.
+function teamOptions(rows, st) {
   var seen = {};
   rows.forEach(function (g) {
     var gn = String(g.Gender).toUpperCase();
-    if (gender && gn !== gender) return;
-    [g.Team1, g.Team2].forEach(function (t) { if (t && VBN.isMember(t, gn)) seen[t] = true; });
+    if (st.g && gn !== st.g) return;
+    [g.Team1, g.Team2].forEach(function (t) {
+      if (!t || !VBN.isMember(t, gn)) return;
+      if (st.d && VBN.leagueOf(t, gn) !== st.d) return;
+      if (st.vpa && VBN.vpaDiv(t, gn) !== st.vpa) return;
+      seen[t] = true;
+    });
   });
   return Object.keys(seen).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
+}
+
+// League tabs come from the Teams tab, so a new league (southern Vermont) shows up on its own.
+function leagueTabs() {
+  var list = VBN.leagueList(TEAM_ROWS, STATE.g, true);
+  if (TEAM_ROWS.length && STATE.d && list.indexOf(STATE.d) === -1) STATE.d = '';
+  document.getElementById('divTabs').innerHTML = '<button class="tab" data-d="">All</button>' + list.map(function (l) {
+    return '<button class="tab" data-d="' + VBN.esc(l) + '">' + VBN.esc(l) + '</button>';
+  }).join('');
 }
 
 function render() {
@@ -128,10 +144,11 @@ function render() {
 }
 
 function syncControls() {
+  leagueTabs();
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
   document.querySelectorAll('#divTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.d === STATE.d); });
   var sel = document.getElementById('teamSelect');
-  var names = teamOptions(ROWS, STATE.g);
+  var names = teamOptions(ROWS, STATE);
   if (STATE.team && names.indexOf(STATE.team) === -1) STATE.team = '';
   sel.innerHTML = '<option value="">All teams</option>' + names.map(function (n) {
     var label = STATE.g ? VBN.displayName(n, STATE.g) : n;   // girls list shows "Caledonia United" for Danville
@@ -149,7 +166,7 @@ document.addEventListener('DOMContentLoaded', function () {
   VBN.renderChrome('schedule.html');
   var p = new URLSearchParams(location.search);
   STATE.g = /^[BG]$/.test(p.get('g') || '') ? p.get('g') : '';
-  STATE.d = ['Metro', 'Lake', 'Capital', 'Mountain'].indexOf(p.get('div')) > -1 ? p.get('div') : '';
+  STATE.d = p.get('div') || '';   // checked against the real league list once Teams loads
   STATE.team = p.get('team') || '';
   STATE.vpa = ['I', 'II', 'III', 'IV'].indexOf(p.get('vpa')) > -1 ? p.get('vpa') : '';
 
@@ -167,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Both sources load at once. If Teams fails, the schedule still shows (plain names, gray squares).
   Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
     if (res[0].status === 'rejected') console.warn('Teams did not load:', res[0].reason);
+    else TEAM_ROWS = res[0].value;
     if (res[1].status === 'rejected') {
       console.error(res[1].reason);
       document.getElementById('scheduleOut').innerHTML = '<p class="empty">The schedule could not load right now. Please try again in a minute.</p>';

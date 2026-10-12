@@ -13,7 +13,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Home | Vermont Basketball Network</title>
-<meta name="description" content="Vermont high school basketball: live scores, schedules, and broadcasts for NVAC boys and girls, from Northeast Sports Network.">
+<meta name="description" content="Vermont high school basketball: scores, schedules, standings, and stats for boys and girls, from Northeast Sports Network.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -36,8 +36,8 @@
 
 <section class="page-hero" style="min-height:36vh;display:flex;align-items:center;">
   <div class="wrap">
-    <span class="eyebrow" id="heroLabel">Vermont High School Basketball</span>
-    <h1 style="font-size:clamp(2.4rem,6.5vw,5rem);line-height:.97;max-width:880px;">Every Tip-Off.<br><em>Every Gym.</em></h1>
+    <span class="eyebrow" id="heroLabel">Boys &amp; Girls Varsity</span>
+    <h1 style="font-size:clamp(2.4rem,6.5vw,5rem);line-height:.97;max-width:880px;">The Home Court<br><em style="display:block;font-size:.55em;line-height:1.05;margin-top:.15em;">for Vermont High School Basketball</em></h1>
     <div style="display:flex;gap:16px;margin-top:28px;flex-wrap:wrap;align-items:center;">
       <a href="schedule.html" class="btn" style="padding:15px 28px;"><span>Full Schedule</span></a>
     </div>
@@ -103,8 +103,8 @@ function render() {
   document.getElementById('dayLabel').innerHTML = anyLive ? '<span class="live-dot"></span>Live Now' : VBN.dayLabel(day);
   document.getElementById('dayTitle').textContent = isToday ? "Today's Games" : (day < today ? 'Last Game Day' : 'Next Game Day');
   document.getElementById('heroLabel').innerHTML = anyLive
-    ? '<span class="live-dot"></span>Live Now &middot; Vermont High School Basketball'
-    : (isToday ? 'Game Day' : VBN.dayLabel(day)) + ' &middot; Vermont High School Basketball';
+    ? '<span class="live-dot"></span>Live Now &middot; Boys &amp; Girls Varsity'
+    : (isToday ? 'Game Day' : VBN.dayLabel(day)) + ' &middot; Boys &amp; Girls Varsity';
 
   var records = VBN.computeRecords(ROWS);
   grid.innerHTML = games.map(function (g) { return VBN.gameCardHTML(g, { scores: true, records: records }); }).join('');

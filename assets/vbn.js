@@ -96,10 +96,33 @@ var VBN = (function () {
   function loadTeams() { return loadSource('teams').then(function (rows) { setTeams(rows); return rows; }); }
   function team(name, gender) { return TEAMS[key(name, gender)] || null; }
   function displayName(name, gender) { var t = team(name, gender); return (t && t.DisplayName) || name || 'TBA'; }
-  function leagueOf(name, gender) {            // 'Metro', 'Lake', 'Capital', 'Mountain' or ''
-    var t = team(name, gender); return t && t.League ? t.League.split(' ')[0] : '';
+  /* A school is "covered" (gets standings, rankings, a team card) when its Teams row has a League filled in.
+     The NVAC column is just a note now, so southern Vermont schools join by typing their league. */
+  var LEAGUE_ORDER = ['Metro', 'Lake', 'Capital A', 'Capital B', 'Mountain'];
+  function hasLeague(t) { return !!(t && String(t.League || '').trim()); }
+  function isActiveRow(t, gender) {
+    return (!gender || String(t.Gender).toUpperCase() === gender) && hasLeague(t) && !/no team|jv/i.test(t.Status || '');
   }
-  function isMember(name, gender) { var t = team(name, gender); return !!(t && t.NVAC === 'Yes'); }
+  function leagueGroup(league) {                // 'Capital A' and 'Capital B' share the 'Capital' filter; a lone tier letter is dropped
+    return String(league || '').trim().replace(/\s+[A-D]$/i, '');
+  }
+  function leagueOf(name, gender) { var t = team(name, gender); return hasLeague(t) ? leagueGroup(t.League) : ''; }
+  function isMember(name, gender) { return hasLeague(team(name, gender)); }
+  function orderLeagues(list) {                 // known leagues in the usual order, any new ones after, A to Z
+    var seen = {}; list.forEach(function (l) { if (l) seen[l] = true; });
+    return Object.keys(seen).sort(function (a, b) {
+      var ia = LEAGUE_ORDER.indexOf(a), ib = LEAGUE_ORDER.indexOf(b);
+      if (ia === -1 && LEAGUE_ORDER.some(function (k) { return leagueGroup(k) === a; })) ia = LEAGUE_ORDER.map(leagueGroup).indexOf(a);
+      if (ib === -1 && LEAGUE_ORDER.some(function (k) { return leagueGroup(k) === b; })) ib = LEAGUE_ORDER.map(leagueGroup).indexOf(b);
+      if (ia === -1) ia = 99; if (ib === -1) ib = 99;
+      return ia - ib || a.localeCompare(b);
+    });
+  }
+  // Every league in the Teams tab for one gender ('' = both). grouped=true gives the schedule filters (Capital, not Capital A).
+  function leagueList(teamRows, gender, grouped) {
+    return orderLeagues(teamRows.filter(function (t) { return isActiveRow(t, gender); })
+      .map(function (t) { var l = String(t.League).trim(); return grouped ? leagueGroup(l) : l; }));
+  }
   function validHex(c) { return /^#[0-9a-f]{3}([0-9a-f]{3})?$/i.test(String(c || '').trim()); }
   function crestHTML(name, gender) {
     var t = team(name, gender);
@@ -126,7 +149,7 @@ var VBN = (function () {
     var h = +m[1], min = +m[2], ap = m[3] ? m[3].toUpperCase() : '';
     if (ap === 'PM' && h < 12) h += 12;
     else if (ap === 'AM' && h === 12) h = 0;
-    else if (!ap && h < 10) h += 12;        // no AM/PM written: NVAC tips are 10:00 AM or later
+    else if (!ap && h < 10) h += 12;        // no AM/PM written: high school tips are 10:00 AM or later
     return h * 60 + min;
   }
   function timeLabel(s) {
@@ -261,13 +284,13 @@ var VBN = (function () {
   function ordinal(n) { var s = ['th', 'st', 'nd', 'rd'], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 
   /* ---------- team rankings ----------
-     For one gender, every NVAC member team gets: its place in its NVAC league group, its place among
-     NVAC teams in its VPA division (by index), and where its points per game (PPG) and points allowed
+     For one gender, every team with a League gets: its place in its league, its place among
+     the teams we track in its VPA division (by index), and where its points per game (PPG) and points allowed
      per game (OPPG) rank inside both groups. Lower OPPG ranks higher. Ties share a rank (1, 2, 2, 4).
      JV-only and "No Team" rows are left out. Returns a map keyed team|gender. */
   function teamRankings(S, teamRows, gender) {
     var members = teamRows.filter(function (t) {
-      return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && !/no team|jv/i.test(t.Status || '');
+      return isActiveRow(t, gender);
     }).map(function (t) {
       var s = S[key(t.Team, gender)] || { team: t.Team, w: 0, l: 0, lw: 0, ll: 0, pf: 0, pa: 0, gp: 0, index: 0, igp: 0, avg: null };
       return { t: t, s: s, ppg: s.gp ? s.pf / s.gp : null, oppg: s.gp ? s.pa / s.gp : null };
@@ -485,7 +508,7 @@ var VBN = (function () {
   return {
     SEASON_YEAR: SEASON_YEAR, CONTACT: CONTACT,
     esc: esc, parseCSV: parseCSV, loadSource: loadSource, loadTeams: loadTeams, setTeams: setTeams,
-    team: team, displayName: displayName, crestHTML: crestHTML, leagueOf: leagueOf, isMember: isMember, key: key, norm: norm,
+    team: team, displayName: displayName, crestHTML: crestHTML, leagueOf: leagueOf, isMember: isMember, hasLeague: hasLeague, isActiveRow: isActiveRow, leagueGroup: leagueGroup, leagueList: leagueList, key: key, norm: norm,
     parseDate: parseDate, parseTime: parseTime, timeLabel: timeLabel, gameStart: gameStart, sortTime: sortTime,
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
     isFinal: isFinal, isLive: isLive, isOff: isOff, computeRecords: computeRecords, num: num,

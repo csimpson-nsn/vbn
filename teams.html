@@ -13,7 +13,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Teams | Vermont Basketball Network</title>
-<meta name="description" content="Every NVAC boys and girls basketball team: records, schedules, rosters, and stats.">
+<meta name="description" content="Every Vermont boys and girls basketball team: records, schedules, rosters, and stats.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -38,7 +38,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>All <em>Teams</em></h1>
-    <p>Every NVAC program, boys and girls. Pick a team for its schedule, results, roster, and rankings.</p>
+    <p>Every program we track, boys and girls. Pick a team for its schedule, results, roster, and rankings.</p>
   </div>
 </section>
 
@@ -57,7 +57,6 @@
 <footer id="site-footer"></footer>
 
 <script>
-var GROUPS = ['Metro', 'Lake', 'Capital A', 'Capital B', 'Mountain'];
 var STATE = { g: 'B' }, TEAM_ROWS = [], STANDINGS = {};
 
 function logoTile(t) {
@@ -66,10 +65,10 @@ function logoTile(t) {
   return '<span class="swatch" style="background:' + c + '"></span>';
 }
 
-// One card per NVAC team in the chosen gender, grouped by league. A team with no program that season is left out.
+// One card per team in the chosen gender, grouped by league. A team with no program that season is left out.
 function cardsFor(group, gender) {
   var list = TEAM_ROWS.filter(function (t) {
-    return String(t.Gender).toUpperCase() === gender && t.NVAC === 'Yes' && t.League === group && !/no team/i.test(t.Status || '');
+    return String(t.Gender).toUpperCase() === gender && String(t.League).trim() === group && !/no team/i.test(t.Status || '');
   }).sort(function (a, b) { return VBN.displayName(a.Team, gender).localeCompare(VBN.displayName(b.Team, gender)); });
   if (!list.length) return '';
   return '<div class="table-title">' + VBN.esc(group) + '<span class="sub">' + list.length + ' teams</span></div><div class="teams-grid">' +
@@ -85,7 +84,7 @@ function cardsFor(group, gender) {
 function render() {
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
   history.replaceState(null, '', location.pathname + '?g=' + STATE.g);
-  var html = GROUPS.map(function (g) { return cardsFor(g, STATE.g); }).join('');
+  var html = VBN.leagueList(TEAM_ROWS, STATE.g, false).map(function (g) { return cardsFor(g, STATE.g); }).join('');
   document.getElementById('teamsOut').innerHTML = html || '<p class="empty">No teams found.</p>';
 }
 

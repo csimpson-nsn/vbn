@@ -93,7 +93,7 @@ function rankHTML(t, r) {
   var s = r.s;
   return '<div class="rank-grid">' +
     box('League Standing', placeText(r.leaguePlace), 'of ' + r.leagueSize + ' in ' + VBN.esc(r.league), 'League record ' + VBN.recText(s.lw, s.ll)) +
-    box('Division Standing', placeText(r.divPlace), r.div ? 'of ' + r.divSize + ' NVAC teams in Div. ' + VBN.esc(r.div) : '',
+    box('Division Standing', placeText(r.divPlace), r.div ? 'of ' + r.divSize + ' tracked teams in Div. ' + VBN.esc(r.div) : '',
         s.avg === null ? 'No index games yet' : 'Index average <b>' + s.avg.toFixed(3) + '</b> (unofficial)') +
     box('Points Per Game', r.ppg === null ? '&ndash;' : r.ppg.toFixed(1), '', r.ppg === null ? 'No final games yet' : both(r.leaguePpgRank, r.divPpgRank)) +
     box('Points Allowed', r.oppg === null ? '&ndash;' : r.oppg.toFixed(1), '', r.oppg === null ? 'No final games yet' : both(r.leagueOppgRank, r.divOppgRank)) +
@@ -182,7 +182,7 @@ function render() {
   var ranks = VBN.teamRankings(S, TEAM_ROWS, STATE.g), r = ranks[VBN.key(t.Team, STATE.g)];
   if (r) r.s = s;
   hero.innerHTML = heroHTML(t, s, STATE.g);
-  out.innerHTML = (t.NVAC === 'Yes' ? rankHTML(t, r) : '') + scheduleHTML(t.Team, STATE.g) + rosterHTML(t.Team, STATE.g) + statsHTML(t.Team, STATE.g);
+  out.innerHTML = (VBN.hasLeague(t) ? rankHTML(t, r) : '') + scheduleHTML(t.Team, STATE.g) + rosterHTML(t.Team, STATE.g) + statsHTML(t.Team, STATE.g);
   history.replaceState(null, '', location.pathname + '?team=' + encodeURIComponent(t.Team) + '&g=' + STATE.g);
 }
 
