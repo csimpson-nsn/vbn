@@ -184,6 +184,11 @@ a.tlink:hover{color:var(--yellow);}
 .team-card h3{font-size:1rem;letter-spacing:.01em;line-height:1.15;}
 .team-card .meta{font-family:'Barlow Condensed',sans-serif;font-size:.82rem;color:var(--steel);margin-top:3px;}
 .team-card .rec{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--snow);font-size:.9rem;margin-top:3px;}
+.team-banner.painted{border-bottom:4px solid var(--team-edge,var(--team-main));
+  background:linear-gradient(135deg,color-mix(in srgb,var(--team-main) var(--team-mix,42%),transparent),transparent 62%),
+             radial-gradient(ellipse at 95% 120%,color-mix(in srgb,var(--team-second) 22%,transparent),transparent 50%),var(--court);}
+.team-banner.painted .eyebrow::before{background:var(--team-line,var(--yellow));}
+.team-banner.painted .big-logo{box-shadow:0 0 0 3px var(--team-edge,var(--team-main));}
 .team-hero{display:flex;align-items:center;gap:26px;flex-wrap:wrap;}
 .team-hero .big-logo{width:120px;height:120px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
 .team-hero .big-logo img{width:108px;height:108px;object-fit:contain;}

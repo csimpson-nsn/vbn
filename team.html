@@ -34,7 +34,7 @@
   </div>
 </div>
 
-<section class="page-hero">
+<section class="page-hero team-banner" id="teamBanner">
   <div class="wrap">
     <div class="team-hero" id="teamHero"><p class="muted">Loading team&hellip;</p></div>
   </div>
@@ -77,6 +77,32 @@ function heroHTML(t, s, g) {
     '<h1 style="margin-top:8px;">' + VBN.esc(VBN.displayName(t.Team, g)) + '</h1>' +
     '<div class="facts">' + facts.map(function (f) { return '<span>' + f[0] + ' <b>' + VBN.esc(f[1]) + '</b></span>'; }).join('') + '</div>' +
     (/jv/i.test(t.Status || '') ? '<p style="margin-top:10px;">JV only this season. Games do not count toward standings or index points.</p>' : '') + '</div>';
+}
+
+/* Team colors for the banner, from PrimaryColor and SecondaryColor on the Teams tab.
+   Black disappears on our dark page, so a black primary hands the banner to the secondary color
+   (site orange if neither works). Dark colors like navy stay, painted stronger so they show.
+   A missing or bad hex is ignored. */
+function hexOk(c) { return /^#[0-9a-f]{6}$/i.test(String(c || '').trim()); }
+function lum(c) {
+  var n = parseInt(c.trim().slice(1), 16), rgb = [n >> 16 & 255, n >> 8 & 255, n & 255].map(function (v) {
+    v /= 255; return v <= .03928 ? v / 12.92 : Math.pow((v + .055) / 1.055, 2.4);
+  });
+  return .2126 * rgb[0] + .7152 * rgb[1] + .0722 * rgb[2];
+}
+function bannerColors(t) {
+  var p = hexOk(t && t.PrimaryColor) ? t.PrimaryColor.trim() : '', s = hexOk(t && t.SecondaryColor) ? t.SecondaryColor.trim() : '';
+  var seen = function (c) { return c && lum(c) > .004; };
+  var main = seen(p) ? p : seen(s) ? s : '#f2711c';
+  var second = s && s.toLowerCase() !== main.toLowerCase() ? s : p && p.toLowerCase() !== main.toLowerCase() ? p : '#ffffff';
+  var dark = lum(main) < .03;
+  return { main: main, second: second, mix: dark ? '78%' : '42%', edge: dark ? second : main, line: lum(second) > .03 ? second : '#ffc72c' };
+}
+function paintBanner(t) {
+  var el = document.getElementById('teamBanner');
+  if (!t) { el.style.removeProperty('--team-main'); el.style.removeProperty('--team-second'); el.style.removeProperty('--team-mix'); el.style.removeProperty('--team-edge'); el.style.removeProperty('--team-line'); el.classList.remove('painted'); return; }
+  var c = bannerColors(t);
+  el.style.setProperty('--team-main', c.main); el.style.setProperty('--team-second', c.second); el.style.setProperty('--team-mix', c.mix); el.style.setProperty('--team-edge', c.edge); el.style.setProperty('--team-line', c.line); el.classList.add('painted');
 }
 
 function placeText(n) { return n ? VBN.ordinal(n) : '&ndash;'; }
@@ -170,10 +196,12 @@ function render() {
   });
   var t = VBN.team(STATE.team, STATE.g);
   if (!STATE.team || (!VBN.team(STATE.team, 'B') && !VBN.team(STATE.team, 'G'))) {
+    paintBanner(null);
     hero.innerHTML = '<div><h1>Team not found</h1><p class="muted" style="margin-top:10px;">Pick a school from the <a class="link" href="teams.html">team list</a>.</p></div>';
     out.innerHTML = ''; return;
   }
   if (!hasProgram(STATE.team, STATE.g)) {
+    paintBanner(VBN.team(STATE.team, STATE.g === 'B' ? 'G' : 'B'));
     hero.innerHTML = '<div><h1>' + VBN.esc(VBN.displayName(STATE.team, STATE.g === 'B' ? 'G' : 'B')) + '</h1></div>';
     out.innerHTML = '<p class="empty">No ' + (STATE.g === 'G' ? 'girls' : 'boys') + ' varsity team this season.</p>'; return;
   }
@@ -181,6 +209,7 @@ function render() {
   var S = VBN.standings(SCHEDULE), s = S[VBN.key(t.Team, STATE.g)] || { w: 0, l: 0, lw: 0, ll: 0, avg: null, streak: '' };
   var ranks = VBN.teamRankings(S, TEAM_ROWS, STATE.g), r = ranks[VBN.key(t.Team, STATE.g)];
   if (r) r.s = s;
+  paintBanner(t);   // girls and boys can have different colors (St. Albans Comets vs. Bobwhites)
   hero.innerHTML = heroHTML(t, s, STATE.g);
   out.innerHTML = (VBN.hasLeague(t) ? rankHTML(t, r) : '') + scheduleHTML(t.Team, STATE.g) + rosterHTML(t.Team, STATE.g) + statsHTML(t.Team, STATE.g);
   history.replaceState(null, '', location.pathname + '?team=' + encodeURIComponent(t.Team) + '&g=' + STATE.g);
