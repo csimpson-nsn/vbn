@@ -80,7 +80,7 @@ function pickDay(rows, today) {
 
 // Live games first, then games still to play (by tip-off), then finals and postponements.
 function orderDay(games) {
-  function rank(g) { return VBN.isLive(g) ? 0 : (VBN.isFinal(g) || VBN.isOff(g)) ? 2 : 1; }
+  function rank(g) { return VBN.isLive(g) || VBN.isPending(g) ? 0 : (VBN.isFinal(g) || VBN.isOff(g)) ? 2 : 1; }
   return games.slice().sort(function (a, b) {
     return (rank(a) - rank(b)) || (VBN.sortTime(a) - VBN.sortTime(b)) || String(a.Team1).localeCompare(String(b.Team1));
   });

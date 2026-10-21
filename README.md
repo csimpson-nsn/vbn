@@ -8,6 +8,9 @@ Sister site to the Vermont Football Network. A Northeast Sports Network producti
 
 ```
 index.html          Homepage: next game day, live scores refresh every 45 seconds
+live-scores.html    Live Now, Later Today, and Final Scores, Boys/Girls tabs, refreshes every 45 seconds
+scorekeeper.html    Staff only (not in the menu): passcode sign-in to send quarter scores and approve finals.
+                    Talks to the VBN Scorekeeper Hub script. Setup: ../LIVE-SCORES-SETUP.md
 schedule.html       Full schedule with Boys/Girls, league, VPA division, and team filters (team list narrows to match)
 standings.html      League standings and VPA index points (unofficial until verified)
 statistics.html     Player stat leaders with minimums, 10 per page
@@ -29,6 +32,10 @@ Stats tab: one row per player per game. GameID ties the row to a Schedule game. 
 On the NSN server, pages read through `data-cache.php`. On GitHub, PHP does not run, so the pages read the published Google links directly. No change to the files is needed when moving from GitHub to the NSN server.
 
 Adding a new Sheet tab means two one-line changes: the `$SOURCES` list in `data-cache.php` and the `GOOGLE` list at the top of `assets/vbn.js`.
+
+## Live scores
+
+Scorekeepers send scores through scorekeeper.html. A script in the private **VBN Scorekeeper Hub** sheet checks their passcode and writes Quarter, Team1Score, and Team2Score on the Schedule row. Quarter "Pending Final" means a final is waiting for an approver: pages show the score but never count it. Full setup and game night steps are in LIVE-SCORES-SETUP.md, one folder up.
 
 ## Adding a league (southern Vermont, etc.)
 

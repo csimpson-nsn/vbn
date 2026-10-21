@@ -174,11 +174,14 @@ var VBN = (function () {
   function startOfToday(now) { var d = now ? new Date(now) : new Date(); d.setHours(0, 0, 0, 0); return d; }
 
   /* ---------- game status ----------
-     A game is final ONLY when Quarter starts with "Final". Scores alone never make a game final. */
+     A game is final ONLY when Quarter starts with "Final". Scores alone never make a game final.
+     "Pending Final" means a scorekeeper sent the final and an approver has not signed off yet:
+     it shows the score, but it is not final, so it never counts toward records or standings. */
   function quarter(g) { return String(g.Quarter || '').trim().toLowerCase(); }
   function isFinal(g) { return quarter(g).indexOf('final') === 0; }
+  function isPending(g) { return quarter(g) === 'pending final'; }
   function isOff(g) { var q = quarter(g); return q.indexOf('postpon') === 0 || q.indexOf('cancel') === 0; }
-  function isLive(g) { var q = quarter(g); return q !== '' && !isFinal(g) && !isOff(g); }
+  function isLive(g) { var q = quarter(g); return q !== '' && !isFinal(g) && !isOff(g) && !isPending(g); }
   function num(v) { var s = String(v == null ? '' : v).trim(); return s !== '' && isFinite(s) ? Number(s) : null; }
 
   // Overall records from Final games only. Key: team|gender.
@@ -399,14 +402,15 @@ var VBN = (function () {
     opts = opts || {};
     var gender = String(g.Gender || '').toUpperCase();
     var neutral = String(g.Neutral || '').trim().toLowerCase() === 'yes';
-    var live = isLive(g), fin = isFinal(g), off = isOff(g);
+    var live = isLive(g), fin = isFinal(g), off = isOff(g), pend = isPending(g);
     var s1 = num(g.Team1Score), s2 = num(g.Team2Score);
-    var showScores = opts.scores && (live || fin) && s1 !== null && s2 !== null;
+    var showScores = opts.scores && (live || fin || pend) && s1 !== null && s2 !== null;
 
     var status;
     if (off) status = esc(g.Quarter);
     else if (live) status = '<span><span class="live-dot"></span>Live &middot; ' + esc(g.Quarter) + '</span>';
     else if (fin && opts.scores) status = esc(g.Quarter);
+    else if (pend && opts.scores) status = 'Final &middot; Awaiting Approval';
     else {
       var d = parseDate(g.Date);
       var when = d ? (opts.showDate ? DAYS[d.getDay()].slice(0, 3) + ', ' + MONTHS[d.getMonth()] + ' ' + d.getDate() + ' &middot; ' : '') : '';
@@ -433,11 +437,11 @@ var VBN = (function () {
     if (g.Event) metaLeft += ' &middot; ' + (neutral ? '' : 'at ') + esc(g.Event);
     var tags = String(g.GameOfWeek || '').trim().toLowerCase() === 'yes' ? '<span class="tag gow">Game of the Week</span>' : '';
     var jv = timeLabel(g.JVTime);
-    var metaRight = tags || (jv && !live && !fin && !off ? 'JV ' + jv : '');
+    var metaRight = tags || (jv && !live && !fin && !off && !pend ? 'JV ' + jv : '');
 
     var url = String(g.BroadcastURL || '').trim();
     var start = gameStart(g);
-    var inWindow = fin || live || (start && start.getTime() - Date.now() <= 30 * 60 * 1000);
+    var inWindow = fin || live || pend || (start && start.getTime() - Date.now() <= 30 * 60 * 1000);
     var watch = /^https?:\/\//i.test(url) && inWindow && !off;
     var cls = 'game-card' + (live ? ' live' : '') + (off ? ' off' : '') + (watch ? ' clickable' : '');
     var open = watch
@@ -451,7 +455,7 @@ var VBN = (function () {
         row(g.Team2, neutral ? '' : '(A)', s2, s1) +
       '</div>' +
       '<div class="game-meta"><span>' + metaLeft + '</span><span>' + metaRight + '</span></div>' +
-      (watch ? '<div class="watch-hint">' + (fin ? 'Watch Replay' : 'Watch This Broadcast') + ' &rarr;</div>' : '') +
+      (watch ? '<div class="watch-hint">' + (fin || pend ? 'Watch Replay' : 'Watch This Broadcast') + ' &rarr;</div>' : '') +
       '</div>';
   }
 
@@ -470,7 +474,7 @@ var VBN = (function () {
   }
 
   /* ---------- header and footer ---------- */
-  var NAV = [['index.html', 'Home'], ['schedule.html', 'Schedule'], ['standings.html', 'Standings'], ['teams.html', 'Teams'], ['statistics.html', 'Statistics']];   // add pages here as they are built
+  var NAV = [['index.html', 'Home'], ['live-scores.html', 'Live Scores'], ['schedule.html', 'Schedule'], ['standings.html', 'Standings'], ['teams.html', 'Teams'], ['statistics.html', 'Statistics']];   // add pages here as they are built
 
   function renderChrome(active) {
     var h = document.getElementById('site-header');
@@ -500,7 +504,7 @@ var VBN = (function () {
           '<p>The home court for Vermont high school basketball: scores, schedules, standings, and stats for boys and girls.</p>' +
           // NSN credit. The VBN wordmark above is a placeholder until the VBN logo is done; swap it in the header and here.
           '<a class="nsn-credit" href="https://www.nsnsports.net" target="_blank" rel="noopener"><span>A production of</span><img src="assets/nsn-logo.png" alt="Northeast Sports Network" loading="lazy" onerror="this.style.display=\'none\'"></a></div>' +
-        '<div class="footer-col"><h4>Network</h4><a href="schedule.html">Full Schedule</a><a href="standings.html">Standings</a><a href="teams.html">All Teams</a><a href="statistics.html">Statistics</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a></div>' +
+        '<div class="footer-col"><h4>Network</h4><a href="live-scores.html">Live Scores</a><a href="schedule.html">Full Schedule</a><a href="standings.html">Standings</a><a href="teams.html">All Teams</a><a href="statistics.html">Statistics</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a></div>' +
         '<div class="footer-col"><h4>Partner With Us</h4><a href="mailto:' + CONTACT + '?subject=VBN%20Sponsorship">Sponsorship Packages</a><a href="mailto:' + CONTACT + '?subject=VBN%20Title%20Sponsor">Title Sponsor Inquiry</a></div>' +
         '<div class="footer-col"><h4>Follow Us</h4><a href="https://www.facebook.com/nsnsports" target="_blank" rel="noopener">Facebook</a><a href="https://www.instagram.com/nsnsports" target="_blank" rel="noopener">Instagram</a><a href="https://www.youtube.com/@nsnsportsvt" target="_blank" rel="noopener">YouTube</a></div>' +
         '</div><div class="footer-bottom"><span>&copy; ' + new Date().getFullYear() + ' Northeast Sports Network. All rights reserved.</span><span>VBN: Vermont Basketball Network</span></div></div>';
@@ -513,7 +517,7 @@ var VBN = (function () {
     team: team, displayName: displayName, crestHTML: crestHTML, leagueOf: leagueOf, isMember: isMember, hasLeague: hasLeague, isActiveRow: isActiveRow, leagueGroup: leagueGroup, leagueList: leagueList, key: key, norm: norm,
     parseDate: parseDate, parseTime: parseTime, timeLabel: timeLabel, gameStart: gameStart, sortTime: sortTime,
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
-    isFinal: isFinal, isLive: isLive, isOff: isOff, computeRecords: computeRecords, num: num,
+    isFinal: isFinal, isLive: isLive, isOff: isOff, isPending: isPending, computeRecords: computeRecords, num: num,
     INDEX_POINTS: INDEX_POINTS, vpaDiv: vpaDiv, indexSkipReason: indexSkipReason, standings: standings, pct: pct, recText: recText, sortLeague: sortLeague, sortIndex: sortIndex, ordinal: ordinal, teamRankings: teamRankings,
     STAT_COLS: STAT_COLS, gradeLabel: gradeLabel, fixCase: fixCase, aggregateStats: aggregateStats,
     gameCardHTML: gameCardHTML, wireCards: wireCards, renderChrome: renderChrome

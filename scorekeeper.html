@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: scorekeeper.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Scorekeepers | Vermont Basketball Network</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+<style>
+/* scorekeeper page only */
+.sk{max-width:640px;margin:0 auto;}
+.panel{background:var(--court);border:1px solid var(--line);padding:22px;margin-bottom:18px;}
+.panel h2{font-size:1.4rem;margin-bottom:6px;}
+.panel p{color:var(--steel);line-height:1.5;}
+.field{display:flex;flex-direction:column;gap:6px;margin-top:16px;}
+.field label{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-size:.78rem;color:var(--steel);}
+.input{font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:1.3rem;color:var(--snow);background:var(--ink);border:1px solid var(--line);padding:12px 14px;width:100%;}
+.input:focus{border-color:var(--hoop);outline:none;}
+.input.code{letter-spacing:.2em;text-transform:uppercase;}
+.btn.wide{width:100%;text-align:center;padding:15px 22px;font-size:1.05rem;margin-top:18px;}
+.btn:disabled{opacity:.5;cursor:default;}
+.who{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;font-family:'Barlow Condensed',sans-serif;color:var(--steel);margin-bottom:16px;}
+.who b{color:var(--snow);}
+.textbtn{background:none;border:none;color:var(--yellow);font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.05em;cursor:pointer;font-size:.9rem;padding:4px 0;}
+.msg{padding:12px 16px;margin-bottom:16px;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;border-left:3px solid var(--green-light);background:var(--court);}
+.msg.err{border-color:var(--live);}
+.pick{display:flex;flex-direction:column;gap:10px;}
+.pick-game{background:var(--ink);border:1px solid var(--line);padding:12px 14px;color:var(--snow);text-align:left;cursor:pointer;font-family:'Barlow',sans-serif;display:flex;justify-content:space-between;gap:12px;align-items:center;}
+.pick-game:hover,.pick-game.on{border-color:var(--hoop);}
+.pick-game .teams{font-weight:600;line-height:1.35;}
+.pick-game .sub{font-family:'Barlow Condensed',sans-serif;color:var(--steel);font-size:.85rem;}
+.pick-game .state{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-align:right;white-space:nowrap;font-size:.95rem;}
+.pick-game .state.live{color:var(--live);} .pick-game .state.done{color:var(--steel);}
+.periods{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:8px;}
+.period{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.95rem;color:var(--snow);background:var(--ink);border:1px solid var(--line);padding:12px 6px;cursor:pointer;line-height:1.15;}
+.period.on{background:var(--green);border-color:var(--green);}
+.period.final{border-color:var(--hoop);}
+.period.final.on{background:var(--hoop);color:var(--ink);}
+.scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.scores .input{font-family:'Anton',sans-serif;font-size:2rem;text-align:center;}
+.confirm{border:1px solid var(--hoop);padding:14px;margin-top:18px;font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;line-height:1.5;}
+.confirm b{color:var(--yellow);}
+.confirm .row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;}
+.pend{background:var(--ink);border:1px solid var(--line);padding:14px;margin-top:12px;}
+.pend .top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-family:'Barlow Condensed',sans-serif;}
+.pend .score{font-size:1.4rem;color:var(--snow);}
+.pend .sub{font-family:'Barlow Condensed',sans-serif;color:var(--steel);font-size:.9rem;margin-top:4px;}
+.pend .row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.btn.reject{background:var(--court);color:var(--snow);border:1px solid var(--live);}
+.btn.reject:hover{background:var(--live);}
+@media (max-width:440px){.periods{grid-template-columns:repeat(2,1fr);}}
+</style>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Staff Only</span>
+    <h1>Scorekeepers</h1>
+    <p>Send the score at the end of each quarter. Quarter scores post right away. Final scores show once an approver signs off.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap sk">
+    <div id="msg" class="msg" hidden></div>
+
+    <!-- Step 1: passcode -->
+    <form class="panel" id="loginPanel" autocomplete="off">
+      <h2>Sign In</h2>
+      <p>Enter the passcode VBN gave you. Do not share it. If you lost it, contact <span id="contact"></span>.</p>
+      <div class="field">
+        <label for="code">Passcode</label>
+        <input class="input code" id="code" name="code" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required>
+      </div>
+      <button class="btn wide" type="submit" id="loginBtn"><span>Sign In</span></button>
+    </form>
+
+    <!-- Step 2: signed in -->
+    <div id="app" hidden>
+      <div class="who"><span>Signed in as <b id="whoName"></b> (<span id="whoRole"></span>)</span><button class="textbtn" id="signOut" type="button">Sign out</button></div>
+      <div class="tab-row" id="modeTabs" style="margin-bottom:18px;">
+        <button class="tab active" data-mode="submit" type="button">Send a Score</button>
+        <button class="tab" data-mode="approve" type="button" id="approveTab" hidden>Approvals</button>
+      </div>
+
+      <div id="submitView">
+        <div class="panel">
+          <h2>1. Pick the game</h2>
+          <div class="tab-row" id="genderTabs" style="margin:10px 0 14px;">
+            <button class="tab active" data-g="" type="button">Both</button><button class="tab" data-g="B" type="button">Boys</button><button class="tab" data-g="G" type="button">Girls</button>
+          </div>
+          <div class="pick" id="gameList"></div>
+          <button class="textbtn" id="refreshGames" type="button" style="margin-top:12px;">Refresh games</button>
+        </div>
+
+        <form class="panel" id="scoreForm" hidden autocomplete="off">
+          <h2>2. Period and score</h2>
+          <p id="formGame"></p>
+          <div class="field"><label>Period that just ended</label><div class="periods" id="periods"></div></div>
+          <div class="field">
+            <label>Score</label>
+            <div class="scores">
+              <!-- Away on the left, home on the right, same order as "Away at Home". s1 is always the home (Team1) score. -->
+              <div><label class="muted" for="s2" id="t2Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s2" inputmode="numeric" pattern="[0-9]*" maxlength="3" required></div>
+              <div><label class="muted" for="s1" id="t1Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s1" inputmode="numeric" pattern="[0-9]*" maxlength="3" required></div>
+            </div>
+          </div>
+          <button class="btn wide" type="submit"><span>Review</span></button>
+          <div class="confirm" id="confirmBox" hidden>
+            <div id="confirmText"></div>
+            <div class="row">
+              <button class="btn" type="button" id="sendBtn"><span>Send It</span></button>
+              <button class="textbtn" type="button" id="editBtn">Go back and fix</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div id="approveView" hidden>
+        <div class="panel">
+          <h2>Waiting for approval</h2>
+          <p>Check each final against the scorebook or broadcast. Rejecting a final puts the game back to its last quarter score.</p>
+          <div id="pendList"></div>
+          <button class="textbtn" id="refreshPend" type="button" style="margin-top:12px;">Refresh</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+// Paste the Scorekeeper Hub web app URL here (Deploy > Manage deployments > Web app URL). It ends in /exec.
+var API_URL = '';
+
+// Buttons scorekeepers see, in game order. The value is what goes into the Schedule tab's Quarter column.
+var PERIOD_BUTTONS = [
+  ['Q1', 'End of 1st'], ['Half', 'Halftime'], ['Q3', 'End of 3rd'],
+  ['Q4', 'End of 4th (tied, going to OT)'], ['OT', 'End of OT'], ['2OT', 'End of 2OT'],
+  ['Final', 'Final'], ['Final/OT', 'Final (OT)'], ['Final/2OT', 'Final (2OT)']
+];
+var ORDER = ['Q1', 'Q2', 'Half', 'Q3', 'Q4', 'OT', '2OT', '3OT', 'Final', 'Final/OT', 'Final/2OT', 'Final/3OT'];
+
+var S = { code: '', name: '', role: '', games: [], gender: '', game: null, period: '', pendTimer: null };
+var $ = function (id) { return document.getElementById(id); };
+var esc = VBN.esc;
+
+function api(action, extra) {
+  if (!API_URL) return Promise.reject(new Error('This page is not connected yet. Paste the web app URL into API_URL in scorekeeper.html.'));
+  var body = Object.assign({ action: action, code: S.code }, extra || {});
+  // No Content-Type header on purpose: plain text keeps the browser from sending an extra preflight request Google rejects.
+  return fetch(API_URL, { method: 'POST', body: JSON.stringify(body) })
+    .then(function (r) { if (!r.ok) throw new Error('The score system did not answer (HTTP ' + r.status + '). Try again.'); return r.json(); })
+    .then(function (d) {
+      if (d.badCode && S.name) signOut('Your passcode is no longer active. Contact ' + VBN.CONTACT + '.');
+      if (!d.ok) throw new Error(d.error || 'Something went wrong.');
+      return d;
+    });
+}
+
+function say(text, isErr) {
+  var m = $('msg');
+  m.textContent = text; m.className = 'msg' + (isErr ? ' err' : ''); m.hidden = !text;
+  if (text) m.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+function teamName(name, g) { return VBN.displayName(name, g); }
+// Scores read away-home everywhere on this page, the same order as "Away at Home".
+function stateText(x) {
+  var sc = x.s1 === null || x.s2 === null ? '' : ' ' + x.s2 + '-' + x.s1;
+  if (!x.quarter) return { t: 'Not started', c: '' };
+  if (/^pending/i.test(x.quarter)) return { t: 'Final pending' + sc, c: 'done' };
+  if (/^final/i.test(x.quarter)) return { t: x.quarter + sc, c: 'done' };
+  if (/^(postpon|cancel)/i.test(x.quarter)) return { t: x.quarter, c: 'done' };
+  return { t: x.quarter + sc, c: 'live' };
+}
+
+/* ---------- sign in ---------- */
+function signIn(code) {
+  S.code = code;
+  $('loginBtn').disabled = true;
+  return api('login').then(function (d) {
+    S.name = d.name; S.role = d.role; S.games = d.games || [];
+    try { sessionStorage.setItem('vbnCode', code); } catch (e) {}
+    $('loginPanel').hidden = true; $('app').hidden = false;
+    $('whoName').textContent = d.name; $('whoRole').textContent = d.role;
+    $('approveTab').hidden = d.role !== 'Approver';
+    $('scoreForm').hidden = true;
+    setMode('submit');   // always start here, even if the last person on this phone was on Approvals
+    say('');
+    renderGames();
+    if (d.role === 'Approver') loadPending(true);
+  }).catch(function (e) {
+    S.code = '';
+    try { sessionStorage.removeItem('vbnCode'); } catch (x) {}
+    say(e.message, true);
+  }).then(function () { $('loginBtn').disabled = false; });
+}
+
+function signOut(reason) {
+  try { sessionStorage.removeItem('vbnCode'); } catch (e) {}
+  clearInterval(S.pendTimer);
+  S = { code: '', name: '', role: '', games: [], gender: S.gender, game: null, period: '', pendTimer: null };
+  $('app').hidden = true; $('loginPanel').hidden = false; $('code').value = '';
+  say(reason || '', !!reason);
+}
+
+/* ---------- pick a game ---------- */
+function renderGames() {
+  var list = S.games.filter(function (x) { return !S.gender || x.gender.toUpperCase() === S.gender; });
+  list.sort(function (a, b) { return (a.offset - b.offset) || (VBN.parseTime(a.time) || 9999) - (VBN.parseTime(b.time) || 9999) || a.team1.localeCompare(b.team1); });
+  var label = { '-1': 'Yesterday', '0': 'Today', '1': 'Tomorrow' }, html = '', lastDay = null;
+  list.forEach(function (x) {
+    if (x.offset !== lastDay) { html += '<div class="day-head" style="margin:8px 0 0;">' + (label[x.offset] || x.date) + '</div>'; lastDay = x.offset; }
+    var st = stateText(x), on = S.game && S.game.id === x.id ? ' on' : '';
+    html += '<button type="button" class="pick-game' + on + '" data-id="' + esc(x.id) + '">' +
+      '<span><span class="teams">' + esc(teamName(x.team2, x.gender)) + ' at ' + esc(teamName(x.team1, x.gender)) + '</span><br>' +
+      '<span class="sub">' + (x.gender === 'G' ? 'Girls' : 'Boys') + (x.time ? ' &middot; ' + esc(VBN.timeLabel(x.time) || x.time) : '') + ' &middot; ' + esc(x.id) + '</span></span>' +
+      '<span class="state ' + st.c + '">' + esc(st.t) + '</span></button>';
+  });
+  $('gameList').innerHTML = html || '<p class="empty">No games are scheduled from yesterday through tomorrow.</p>';
+}
+
+function pickGame(id) {
+  S.game = S.games.find(function (x) { return x.id === id; });
+  if (!S.game) return;
+  renderGames();
+  var g = S.game;
+  $('formGame').innerHTML = '<b style="color:var(--snow)">' + esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '</b>' +
+    ' &middot; posted now: ' + esc(stateText(g).t);
+  $('t1Label').textContent = teamName(g.team1, g.gender) + ' (Home)';
+  $('t2Label').textContent = teamName(g.team2, g.gender) + ' (Away)';
+  $('s1').value = g.s1 === null ? '' : g.s1;
+  $('s2').value = g.s2 === null ? '' : g.s2;
+  // Suggest the next period after the one already posted.
+  var cur = ORDER.indexOf(g.quarter), next = '';
+  for (var i = 0; i < PERIOD_BUTTONS.length; i++) {
+    var p = PERIOD_BUTTONS[i][0];
+    if (ORDER.indexOf(p) > cur && p !== 'Q4' && !/OT/.test(p)) { next = p; break; }
+  }
+  S.period = g.quarter ? next : 'Q1';
+  renderPeriods();
+  $('confirmBox').hidden = true;
+  $('scoreForm').hidden = false;
+  $('scoreForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderPeriods() {
+  $('periods').innerHTML = PERIOD_BUTTONS.map(function (p) {
+    return '<button type="button" class="period' + (/^Final/.test(p[0]) ? ' final' : '') + (S.period === p[0] ? ' on' : '') + '" data-p="' + p[0] + '">' + p[1] + '</button>';
+  }).join('');
+}
+
+/* ---------- send ---------- */
+function cleanScore(v) { v = String(v).trim(); return /^\d{1,3}$/.test(v) && +v <= 200 ? +v : null; }
+
+function review(e) {
+  e.preventDefault();
+  var g = S.game, s1 = cleanScore($('s1').value), s2 = cleanScore($('s2').value);
+  if (!g) return say('Pick a game first.', true);
+  if (!S.period) return say('Pick the period that just ended.', true);
+  if (s1 === null || s2 === null) return say('Scores must be whole numbers from 0 to 200.', true);
+  if (/^Final/.test(S.period) && s1 === s2) return say('A final score cannot be tied. Check the scores, or pick an overtime period.', true);
+  say('');
+  var label = PERIOD_BUTTONS.find(function (p) { return p[0] === S.period; })[1];
+  var note = /^Final/.test(S.period)
+    ? (S.role === 'Approver' ? 'This posts as final right away.' : 'An approver checks finals before they count.')
+    : 'This posts on the site right away.';
+  $('confirmText').innerHTML = '<b>' + esc(label) + '</b><br>' +
+    esc(teamName(g.team2, g.gender)) + ' <b>' + s2 + '</b>, ' + esc(teamName(g.team1, g.gender)) + ' <b>' + s1 + '</b><br>' +
+    '<span class="muted">' + note + '</span>';
+  $('confirmBox').hidden = false;
+  $('sendBtn').focus();
+}
+
+function send() {
+  var btn = $('sendBtn');
+  btn.disabled = true;
+  api('submit', { gameId: S.game.id, period: S.period, s1: $('s1').value.trim(), s2: $('s2').value.trim() })
+    .then(function (d) {
+      S.games = d.games || S.games;
+      say(d.message);
+      $('scoreForm').hidden = true; S.game = null;
+      renderGames();
+      if (S.role === 'Approver') loadPending(true);
+    })
+    .catch(function (e) { say(e.message, true); $('confirmBox').hidden = true; })
+    .then(function () { btn.disabled = false; });
+}
+
+function refreshGames() {
+  return api('games').then(function (d) {
+    S.games = d.games || [];
+    if (S.game) S.game = S.games.find(function (x) { return x.id === S.game.id; }) || null;
+    renderGames();
+  }).catch(function (e) { say(e.message, true); });
+}
+
+/* ---------- approvals ---------- */
+function loadPending(quiet) {
+  return api('pending').then(function (d) { renderPending(d.pending || []); })
+    .catch(function (e) { if (!quiet) say(e.message, true); });
+}
+
+function renderPending(list) {
+  $('approveTab').textContent = 'Approvals' + (list.length ? ' (' + list.length + ')' : '');
+  $('pendList').innerHTML = list.length ? list.map(function (p) {
+    return '<div class="pend" data-id="' + esc(p.id) + '">' +
+      '<div class="top"><span><b>' + esc(p.matchup) + '</b></span><span class="muted">' + esc(p.gameId) + '</span></div>' +
+      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + esc(p.s2) + '-' + esc(p.s1) + '</span> <span class="muted">(away-home)</span> &middot; <b style="color:var(--yellow)">' + esc(p.period) + '</b></div>' +
+      '<div class="sub">Sent by ' + esc(p.keeper) + (p.when ? ' at ' + esc(p.when) : '') + (p.prev ? ' &middot; before this: ' + esc(p.prev) : '') + '</div>' +
+      '<div class="row"><button class="btn" type="button" data-act="approve"><span>Approve</span></button>' +
+      '<button class="btn reject" type="button" data-act="reject"><span>Reject</span></button></div></div>';
+  }).join('') : '<p class="empty">Nothing is waiting. Nice work.</p>';
+}
+
+function decidePending(card, act) {
+  // Ask once inline before rejecting, since a reject changes what the site shows.
+  if (act === 'reject' && !card.dataset.sure) {
+    card.dataset.sure = '1';
+    card.querySelector('[data-act="reject"] span').textContent = 'Tap again to reject';
+    return;
+  }
+  card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+  api('review', { subId: card.dataset.id, decision: act })
+    .then(function (d) { say(d.message); renderPending(d.pending || []); refreshGames(); })
+    .catch(function (e) { say(e.message, true); loadPending(true); });
+}
+
+function setMode(mode) {
+  document.querySelectorAll('#modeTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.mode === mode); });
+  $('submitView').hidden = mode !== 'submit';
+  $('approveView').hidden = mode !== 'approve';
+  clearInterval(S.pendTimer);
+  if (mode === 'approve') { loadPending(); S.pendTimer = setInterval(function () { loadPending(true); }, 60000); }
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('');
+  $('contact').textContent = VBN.CONTACT;
+  VBN.loadTeams().then(function () { if (S.name) renderGames(); }).catch(function () {});   // nicer team names when available
+
+  $('loginPanel').addEventListener('submit', function (e) { e.preventDefault(); signIn($('code').value.trim()); });
+  $('signOut').addEventListener('click', function () { signOut(); });
+  $('modeTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) setMode(b.dataset.mode); });
+  $('genderTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    S.gender = b.dataset.g;
+    document.querySelectorAll('#genderTabs .tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+    renderGames();
+  });
+  $('gameList').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickGame(b.dataset.id); });
+  $('refreshGames').addEventListener('click', refreshGames);
+  $('periods').addEventListener('click', function (e) {
+    var b = e.target.closest('.period'); if (!b) return;
+    S.period = b.dataset.p; renderPeriods(); $('confirmBox').hidden = true;
+  });
+  ['s1', 's2'].forEach(function (id) { $(id).addEventListener('input', function () { $('confirmBox').hidden = true; }); });
+  $('scoreForm').addEventListener('submit', review);
+  $('sendBtn').addEventListener('click', send);
+  $('editBtn').addEventListener('click', function () { $('confirmBox').hidden = true; $('s2').focus(); });
+  $('refreshPend').addEventListener('click', function () { loadPending(); });
+  $('pendList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (b) decidePending(b.closest('.pend'), b.dataset.act);
+  });
+
+  var saved = '';
+  try { saved = sessionStorage.getItem('vbnCode') || ''; } catch (e) {}
+  if (saved) signIn(saved);
+});
+</script>
+</body>
+</html>

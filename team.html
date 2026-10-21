@@ -146,7 +146,8 @@ function scheduleHTML(team, g) {
       if (VBN.isFinal(x) && mine !== null && theirs !== null) {
         result = '<span class="' + (mine > theirs ? 'res-w">W' : 'res-l">L') + '</span> ' + mine + '-' + theirs + (/ot/i.test(x.Quarter) ? ' (OT)' : '');
       } else if (VBN.isLive(x)) result = '<span class="streak-l"><span class="live-dot"></span>Live ' + VBN.esc(x.Quarter) + '</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
-      else if (VBN.isOff(x)) result = '<span class="dim">' + VBN.esc(x.Quarter) + '</span>';
+      else if (VBN.isPending(x)) result = '<span class="dim">Final, awaiting approval</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
+      else if (VBN.isOff(x)) result ='<span class="dim">' + VBN.esc(x.Quarter) + '</span>';
       else result = '<span class="dim">' + (VBN.timeLabel(x.Time) || 'TBA') + '</span>';
       var oppCell = opp === 'TBA' ? 'TBA'
         : (VBN.isMember(opp, g) ? '<a class="tcell tlink" href="team.html?team=' + encodeURIComponent(opp) + '&g=' + g + '">' : '<span class="tcell">') +

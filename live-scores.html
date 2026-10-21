@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: live-scores.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Scores | Vermont Basketball Network</title>
+<meta name="description" content="Live Vermont high school basketball scores for boys and girls, updated after every quarter.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+<style>
+.refresh-note{font-family:'Barlow Condensed',sans-serif;font-size:.9rem;color:var(--steel);display:flex;align-items:center;gap:8px;margin-bottom:18px;}
+.refresh-note .pulse-sm{width:6px;height:6px;border-radius:50%;background:var(--green-light);display:inline-block;animation:pulse 1.8s infinite;}
+.final-grid .game-card{opacity:.9;}
+</style>
+</head>
+<body>
+
+<header id="site-header"></header>
+
+<main>
+<!-- PAGE SPONSOR: swap the dashed box for the sponsor's logo. -->
+<div class="sponsor-band">
+  <div class="wrap inner">
+    <span class="eyebrow" style="color:var(--yellow);font-size:1rem;">Live Scores Presented By</span>
+    <span class="sponsor-slot">Your Logo Here</span>
+    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Live%20Scores%20Sponsorship">Click Here to Sponsor &rarr;</a>
+  </div>
+</div>
+
+<section class="page-hero">
+  <div class="wrap">
+    <span class="eyebrow">Updated Every Quarter</span>
+    <h1>Live Scores</h1>
+    <p>Scores sent in by courtside scorekeepers after each quarter. Final scores count once a VBN approver checks them. Tap a game with a broadcast to watch.</p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="wrap">
+    <div class="filters">
+      <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
+        <button class="tab active" data-g="">Both</button><button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
+      </div>
+    </div>
+    <div class="refresh-note"><span class="pulse-sm"></span><span id="status">Loading live scores&hellip;</span></div>
+
+    <div class="section-head"><div><span class="eyebrow" id="liveLabel">Courtside</span><h2>Live Now</h2></div></div>
+    <div class="games-grid" id="liveGrid"></div>
+    <p class="empty" id="liveEmpty" hidden></p>
+  </div>
+</section>
+
+<section class="section" id="upNextSection" style="border-top:1px solid var(--line);" hidden>
+  <div class="wrap">
+    <div class="section-head"><div><span class="eyebrow">Still to Tip Off</span><h2>Later Today</h2></div><a href="schedule.html" class="link">Full Schedule &rarr;</a></div>
+    <div class="games-grid" id="nextGrid"></div>
+  </div>
+</section>
+
+<section class="section" style="border-top:1px solid var(--line);">
+  <div class="wrap">
+    <div class="section-head"><div><span class="eyebrow" id="finalLabel">Just Wrapped</span><h2>Final Scores</h2></div></div>
+    <div class="games-grid final-grid" id="finalGrid"></div>
+    <p class="empty" id="finalEmpty" hidden></p>
+  </div>
+</section>
+</main>
+
+<footer id="site-footer"></footer>
+
+<script>
+var ROWS = [], GENDER = '', LOADED = false;
+
+function sameDay(g, key) { var d = VBN.parseDate(g.Date); return d && VBN.dayKey(d) === key; }
+
+/* Splits the schedule into what this page shows. Pure, so it can be tested.
+   live:   in progress or waiting for approval, from yesterday or today (a forgotten game
+           from last week never sits in Live Now forever)
+   later:  today's games that have not started
+   finals: today's finals, or the most recent game day's finals when today has none */
+function buildBoard(rows, today, gender) {
+  var tKey = VBN.dayKey(today), yest = new Date(today); yest.setDate(yest.getDate() - 1);
+  var yKey = VBN.dayKey(yest);
+  var mine = rows.filter(function (g) { return !gender || String(g.Gender).toUpperCase() === gender; });
+  function byTime(a, b) { return VBN.sortTime(a) - VBN.sortTime(b) || String(a.Team1).localeCompare(String(b.Team1)); }
+
+  var live = mine.filter(function (g) { return (VBN.isLive(g) || VBN.isPending(g)) && (sameDay(g, tKey) || sameDay(g, yKey)); })
+    .sort(function (a, b) { return (VBN.isPending(a) - VBN.isPending(b)) || byTime(a, b); });
+  var later = mine.filter(function (g) { return sameDay(g, tKey) && !String(g.Quarter || '').trim(); }).sort(byTime);
+
+  var finalDay = null;
+  if (mine.some(function (g) { return VBN.isFinal(g) && sameDay(g, tKey); })) finalDay = today;
+  else mine.forEach(function (g) {
+    var d = VBN.parseDate(g.Date);
+    if (VBN.isFinal(g) && d && d <= today && (!finalDay || d > finalDay)) finalDay = d;
+  });
+  var finals = finalDay ? mine.filter(function (g) { return VBN.isFinal(g) && sameDay(g, VBN.dayKey(finalDay)); })
+    .sort(function (a, b) { return byTime(b, a); }) : [];
+  return { live: live, later: later, finals: finals, finalDay: finalDay };
+}
+
+function render() {
+  var today = VBN.startOfToday(), b = buildBoard(ROWS, today, GENDER);
+  var records = VBN.computeRecords(ROWS);
+  function cards(list) { return list.map(function (g) { return VBN.gameCardHTML(g, { scores: true, records: records }); }).join(''); }
+  var who = GENDER === 'B' ? 'boys ' : GENDER === 'G' ? 'girls ' : '';
+
+  document.getElementById('liveGrid').innerHTML = cards(b.live);
+  var le = document.getElementById('liveEmpty');
+  le.hidden = b.live.length > 0;
+  le.textContent = b.later.length ? 'No ' + who + 'games are live yet. ' + b.later.length + ' still to tip off today.' : 'No ' + who + 'games are live right now.';
+  document.getElementById('liveLabel').innerHTML = b.live.some(VBN.isLive) ? '<span class="live-dot"></span>Courtside' : 'Courtside';
+
+  document.getElementById('upNextSection').hidden = !b.later.length;
+  document.getElementById('nextGrid').innerHTML = cards(b.later);
+
+  document.getElementById('finalGrid').innerHTML = cards(b.finals);
+  var fe = document.getElementById('finalEmpty');
+  fe.hidden = b.finals.length > 0;
+  fe.textContent = 'No ' + who + 'final scores yet.';
+  document.getElementById('finalLabel').textContent = !b.finalDay ? 'Just Wrapped'
+    : b.finalDay.getTime() === today.getTime() ? 'Just Wrapped Tonight' : VBN.dayLabel(b.finalDay);
+}
+
+function load() {
+  return Promise.allSettled([LOADED ? Promise.resolve() : VBN.loadTeams(), VBN.loadSource('schedule')]).then(function (res) {
+    if (res[0].status === 'rejected') console.warn('Teams did not load:', res[0].reason);
+    var time = new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    if (res[1].status === 'rejected') {
+      console.error(res[1].reason);
+      document.getElementById('status').textContent = LOADED
+        ? 'Could not refresh at ' + time + '. Showing the last scores we had. Trying again shortly.'
+        : 'Scores could not load right now. Please try again in a minute.';
+      return;
+    }
+    LOADED = true;
+    ROWS = res[1].value;
+    render();
+    document.getElementById('status').textContent = 'This page checks for new scores every 45 seconds. Last checked ' + time + '.';
+  });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  VBN.renderChrome('live-scores.html');
+  document.getElementById('genderTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    GENDER = b.dataset.g;
+    document.querySelectorAll('#genderTabs .tab').forEach(function (x) { x.classList.toggle('active', x === b); });
+    if (LOADED) render();
+  });
+  ['liveGrid', 'nextGrid', 'finalGrid'].forEach(function (id) { VBN.wireCards(document.getElementById(id)); });
+  load();
+  setInterval(load, 45000);   // matches the 45 second schedule cache in data-cache.php
+});
+</script>
+</body>
+</html>
