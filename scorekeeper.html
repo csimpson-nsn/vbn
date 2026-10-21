@@ -118,8 +118,8 @@
             <label>Score</label>
             <div class="scores">
               <!-- Away on the left, home on the right, same order as "Away at Home". s1 is always the home (Team1) score. -->
-              <div><label class="muted" for="s2" id="t2Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s2" inputmode="numeric" pattern="[0-9]*" maxlength="3" required></div>
-              <div><label class="muted" for="s1" id="t1Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s1" inputmode="numeric" pattern="[0-9]*" maxlength="3" required></div>
+              <div><label class="muted" for="s2" id="t2Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s2" inputmode="numeric" pattern="[0-9]*" required></div>
+              <div><label class="muted" for="s1" id="t1Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s1" inputmode="numeric" pattern="[0-9]*" required></div>
             </div>
           </div>
           <button class="btn wide" type="submit"><span>Review</span></button>
@@ -374,7 +374,14 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = e.target.closest('.period'); if (!b) return;
     S.period = b.dataset.p; renderPeriods(); $('confirmBox').hidden = true;
   });
-  ['s1', 's2'].forEach(function (id) { $(id).addEventListener('input', function () { $('confirmBox').hidden = true; }); });
+  // Score boxes take digits only: letters, spaces, and symbols are removed as they are typed or pasted.
+  ['s1', 's2'].forEach(function (id) {
+    $(id).addEventListener('input', function () {
+      var clean = this.value.replace(/\D/g, '').slice(0, 3);
+      if (clean !== this.value) this.value = clean;
+      $('confirmBox').hidden = true;
+    });
+  });
   $('scoreForm').addEventListener('submit', review);
   $('sendBtn').addEventListener('click', send);
   $('editBtn').addEventListener('click', function () { $('confirmBox').hidden = true; $('s2').focus(); });
