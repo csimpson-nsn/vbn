@@ -21,6 +21,7 @@
 <script src="assets/vbn.js"></script>
 <style>
 /* scorekeeper page only */
+.sk [hidden]{display:none !important;}   /* rows like .tab-row set display:flex, which would otherwise beat the hidden attribute */
 .sk{max-width:640px;margin:0 auto;}
 .panel{background:var(--court);border:1px solid var(--line);padding:22px;margin-bottom:18px;}
 .panel h2{font-size:1.4rem;margin-bottom:6px;}
@@ -73,7 +74,7 @@
   <div class="wrap">
     <span class="eyebrow">Staff Only</span>
     <h1>Scorekeepers</h1>
-    <p>Send the score at the end of each quarter. Quarter scores post right away. Final scores show once an approver signs off.</p>
+    <p>Send the score at the end of each quarter. A VBN approver checks each score before it shows on the site.</p>
   </div>
 </section>
 
@@ -90,11 +91,12 @@
         <input class="input code" id="code" name="code" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required>
       </div>
       <button class="btn wide" type="submit" id="loginBtn"><span>Sign In</span></button>
+      <p style="margin-top:18px;font-size:.92rem;">Want to keep score for your school's games? Email <b style="color:var(--snow)" id="contact2"></b> with your name, school, and boys or girls, and we will send you a passcode.</p>
     </form>
 
     <!-- Step 2: signed in -->
     <div id="app" hidden>
-      <div class="who"><span>Signed in as <b id="whoName"></b> (<span id="whoRole"></span>)</span><button class="textbtn" id="signOut" type="button">Sign out</button></div>
+      <div class="who"><span>Signed in as <b id="whoName"></b> (<span id="whoRole"></span><span id="whoScope"></span>)</span><button class="textbtn" id="signOut" type="button">Sign out</button></div>
       <div class="tab-row" id="modeTabs" style="margin-bottom:18px;">
         <button class="tab active" data-mode="submit" type="button">Send a Score</button>
         <button class="tab" data-mode="approve" type="button" id="approveTab" hidden>Approvals</button>
@@ -136,7 +138,7 @@
       <div id="approveView" hidden>
         <div class="panel">
           <h2>Waiting for approval</h2>
-          <p>Check each final against the scorebook or broadcast. Rejecting a final puts the game back to its last quarter score.</p>
+          <p>Check each score against the scorebook or broadcast. Approving a game's newest update clears its older ones. Rejecting a final puts the game back to its last approved score.</p>
           <div id="pendList"></div>
           <button class="textbtn" id="refreshPend" type="button" style="margin-top:12px;">Refresh</button>
         </div>
@@ -203,6 +205,12 @@ function signIn(code) {
     try { sessionStorage.setItem('vbnCode', code); } catch (e) {}
     $('loginPanel').hidden = true; $('app').hidden = false;
     $('whoName').textContent = d.name; $('whoRole').textContent = d.role;
+    S.autoPost = d.autoPostLive === true;   // follows autoPostLive in the script
+    S.scope = d.scope && d.scope !== 'All games' ? d.scope : '';
+    $('whoScope').textContent = S.scope ? ' · ' + S.scope : '';
+    // A keeper limited to boys or girls has no use for the Boys/Girls filter.
+    S.gender = d.gender ? '' : S.gender;
+    $('genderTabs').hidden = !!d.gender;
     $('approveTab').hidden = d.role !== 'Approver';
     $('scoreForm').hidden = true;
     setMode('submit');   // always start here, even if the last person on this phone was on Approvals
@@ -237,7 +245,8 @@ function renderGames() {
       '<span class="sub">' + (x.gender === 'G' ? 'Girls' : 'Boys') + (x.time ? ' &middot; ' + esc(VBN.timeLabel(x.time) || x.time) : '') + ' &middot; ' + esc(x.id) + '</span></span>' +
       '<span class="state ' + st.c + '">' + esc(st.t) + '</span></button>';
   });
-  $('gameList').innerHTML = html || '<p class="empty">No games are scheduled from yesterday through tomorrow.</p>';
+  $('gameList').innerHTML = html || '<p class="empty">No ' + (S.scope ? esc(S.scope) + ' ' : '') + 'games are scheduled from yesterday through tomorrow.' +
+    (S.scope ? ' If that looks wrong, contact ' + esc(VBN.CONTACT) + '.' : '') + '</p>';
 }
 
 function pickGame(id) {
@@ -284,7 +293,7 @@ function review(e) {
   var label = PERIOD_BUTTONS.find(function (p) { return p[0] === S.period; })[1];
   var note = /^Final/.test(S.period)
     ? (S.role === 'Approver' ? 'This posts as final right away.' : 'An approver checks finals before they count.')
-    : 'This posts on the site right away.';
+    : (S.role === 'Approver' || S.autoPost ? 'This posts on the site right away.' : 'An approver checks it before it shows on the site.');
   $('confirmText').innerHTML = '<b>' + esc(label) + '</b><br>' +
     esc(teamName(g.team2, g.gender)) + ' <b>' + s2 + '</b>, ' + esc(teamName(g.team1, g.gender)) + ' <b>' + s1 + '</b><br>' +
     '<span class="muted">' + note + '</span>';
@@ -357,6 +366,7 @@ function setMode(mode) {
 document.addEventListener('DOMContentLoaded', function () {
   VBN.renderChrome('');
   $('contact').textContent = VBN.CONTACT;
+  $('contact2').textContent = VBN.CONTACT;
   VBN.loadTeams().then(function () { if (S.name) renderGames(); }).catch(function () {});   // nicer team names when available
 
   $('loginPanel').addEventListener('submit', function (e) { e.preventDefault(); signIn($('code').value.trim()); });
