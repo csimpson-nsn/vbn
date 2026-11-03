@@ -75,23 +75,24 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
 .chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.88rem;background:var(--ink);color:var(--steel);border:1px solid var(--line);padding:8px 12px;cursor:pointer;}
 .chip.on{background:var(--green);border-color:var(--green);color:var(--snow);}
-.players{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
-.prow{background:var(--ink);border:1px solid var(--line);}
-.prow.in{border-color:var(--green);}
-.prow-head{width:100%;background:none;border:none;color:var(--snow);display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:1rem;text-align:left;}
-.prow-head .num{font-family:'Anton',sans-serif;color:var(--steel);display:inline-block;min-width:34px;}
-.prow-head .pts{font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;}
-.prow-head .pts.add{color:var(--steel);font-weight:600;}
-.prow-edit{padding:0 14px 14px;}
-.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
-.stat-grid label{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--steel);margin-bottom:4px;}
-.stat-grid select.input{font-size:1.25rem;padding:10px 8px;}
-.prow-edit .row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
+.box-wrap{overflow-x:auto;margin-top:14px;border:1px solid var(--line);-webkit-overflow-scrolling:touch;}
+.box-grid{border-collapse:collapse;min-width:100%;}
+.box-grid th{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:.78rem;letter-spacing:.06em;color:var(--steel);padding:8px 4px;background:var(--court);border-bottom:1px solid var(--line);white-space:nowrap;}
+.box-grid td{padding:4px 3px;border-bottom:1px solid var(--line);text-align:center;background:var(--ink);}
+.box-grid .pcol{position:sticky;left:0;z-index:2;text-align:left;min-width:132px;max-width:150px;padding:6px 8px;border-right:1px solid var(--line);}
+.box-grid th.pcol{background:var(--court);}
+.box-grid td.pcol label{display:flex;align-items:center;gap:8px;cursor:pointer;line-height:1.2;font-size:.95rem;}
+.box-grid td.pcol input{width:20px;height:20px;accent-color:var(--green);flex:none;}
+.box-grid td.pcol .num{font-family:'Anton',sans-serif;color:var(--steel);font-size:.85rem;}
+.box-grid td.pts{font-family:'Anton',sans-serif;font-size:1.1rem;min-width:38px;}
+.box-grid select{appearance:none;-webkit-appearance:none;font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.05rem;color:var(--snow);background:var(--court);border:1px solid var(--line);width:44px;padding:8px 0;text-align:center;text-align-last:center;cursor:pointer;}
+.box-grid tr.out td{opacity:.55;}
+.box-grid tr.out td.pcol{opacity:1;color:var(--steel);}
+.box-grid tr.in td.pcol{box-shadow:inset 3px 0 0 var(--green);}
 .totalbar{position:sticky;bottom:0;background:var(--court);border:1px solid var(--line);border-top:3px solid var(--hoop);padding:12px 14px;margin-top:16px;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;z-index:5;}
 .totalbar b{font-family:'Anton',sans-serif;font-size:1.4rem;color:var(--snow);font-weight:400;}
 @media (max-width:440px){.periods{grid-template-columns:repeat(2,1fr);}}
-@media (min-width:560px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
-</style>
+@media (min-width:560px){</style>
 </head>
 <body>
 
@@ -181,8 +182,8 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
           <h2 id="boxTitle">3. Stat lines</h2>
           <p id="boxNote"></p>
           <div class="field"><label>Stats your team keeps</label><div class="chips" id="keptChips"></div></div>
-          <p style="margin-top:14px;font-size:.92rem;">Tap each player who played and set their numbers. Players you skip are left out (did not play).</p>
-          <div class="players" id="playerList"></div>
+          <p style="margin-top:14px;font-size:.92rem;">One line per player. Pick the numbers right in the row. Picking any number checks the player in; uncheck anyone who did not play. Slide sideways for more stats.</p>
+          <div id="playerList"></div>
           <button class="textbtn" id="addOther" type="button" style="margin-top:12px;">+ Add a player who is not on the roster</button>
           <div class="field" id="otherForm" hidden>
             <label for="otherName">Player name</label>
@@ -542,9 +543,11 @@ function pickStatGame(id) {
 
 function pickTeam(team) {
   var g = B.game;
-  B.team = team; B.lines = {}; B.off = {}; B.open = '';
+  B.team = team; B.lines = {}; B.off = {};
   $('boxPanel').hidden = false;
   $('playerList').innerHTML = '<p class="muted">Loading roster&hellip;</p>';
+  // Nothing to tap until the roster is in, so a slow answer cannot wipe out a player being added.
+  $('addOther').hidden = true; $('otherForm').hidden = true; $('keptChips').innerHTML = '';
   $('boxConfirm').hidden = true;
   $('boxTitle').textContent = (g.teams.length === 1 ? '2. ' : '3. ') + teamName(team, g.gender) + ' stat lines';
   api('boxScore', { gameId: g.id, team: team }).then(function (d) {
@@ -564,9 +567,14 @@ function pickTeam(team) {
     }
     $('boxNote').textContent = note || 'Numbers are picked from lists, so there is nothing to type.';
     if (!B.roster.length) $('boxNote').textContent += ' No roster is posted for this team yet, so add players below.';
+    $('addOther').hidden = false;
     renderBox();
     $('boxPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }).catch(function (e) { $('boxPanel').hidden = true; say(e.message, true); });
+  }).catch(function (e) {
+    // Show the problem right here in the panel instead of closing it and jumping to the top.
+    $('boxNote').textContent = '';
+    $('playerList').innerHTML = '<div class="msg err" style="margin:0;">' + esc(e.message) + '</div>';
+  });
 }
 
 function renderBox() {
@@ -579,21 +587,25 @@ function renderBox() {
     if (!people.some(function (p) { return VBN.norm(p.player) === VBN.norm(n); })) people.push({ player: n, number: B.lines[n].number || '' });
   });
   people.sort(function (a, b) { return (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999) || a.player.localeCompare(b.player); });
-  $('playerList').innerHTML = people.map(function (p) {
-    var l = lineFor(p.player), open = B.open === p.player;
-    var html = '<div class="prow' + (l ? ' in' : '') + '" data-p="' + esc(p.player) + '">' +
-      '<button type="button" class="prow-head"><span><span class="num">' + (p.number !== '' ? '#' + esc(p.number) : '') + '</span>' + esc(p.player) + '</span>' +
-      '<span class="pts' + (l ? '' : ' add') + '">' + (l ? linePts(l) + ' pts' : 'Tap to add') + '</span></button>';
-    if (open && l) {
-      html += '<div class="prow-edit"><div class="stat-grid">' + STAT_FIELDS.filter(function (f) { return !isOff(f[0]); }).map(function (f) {
-        var opts = '';
-        for (var i = 0; i <= f[2]; i++) opts += '<option value="' + i + '"' + (Number(l[f[0]]) === i ? ' selected' : '') + '>' + i + '</option>';
-        return '<div><label>' + f[1] + '</label><select class="input" data-k="' + f[0] + '">' + opts + '</select></div>';
-      }).join('') + '</div><div class="row"><button class="textbtn" type="button" data-act="remove" style="color:var(--steel)">Did not play (remove)</button>' +
-        '<button class="btn" type="button" data-act="done"><span>Done</span></button></div></div>';
-    }
-    return html + '</div>';
-  }).join('') || '<p class="empty">No players yet.</p>';
+  B.people = people;
+  var cols = STAT_FIELDS.filter(function (f) { return !isOff(f[0]); });
+  if (!people.length) { $('playerList').innerHTML = '<p class="empty">No players yet. Add them below.</p>'; return updateTotal(); }
+  // One row per player, every stat a pick list in the row. The name column stays put while the stats slide.
+  var wrap = $('playerList').querySelector('.box-wrap'), left = wrap ? wrap.scrollLeft : 0;
+  $('playerList').innerHTML = '<div class="box-wrap"><table class="box-grid"><thead><tr><th class="pcol">Player</th><th>PTS</th>' +
+    cols.map(function (f) { return '<th title="' + f[1] + '">' + f[0] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    people.map(function (p, i) {
+      var l = lineFor(p.player);
+      return '<tr class="' + (l ? 'in' : 'out') + '" data-i="' + i + '"><td class="pcol"><label><input type="checkbox"' + (l ? ' checked' : '') + '>' +
+        '<span>' + (p.number !== '' ? '<span class="num">#' + esc(p.number) + '</span> ' : '') + esc(p.player) + '</span></label></td>' +
+        '<td class="pts">' + (l ? linePts(l) : '') + '</td>' +
+        cols.map(function (f) {
+          var v = l ? Number(l[f[0]]) : 0, opts = '';
+          for (var n = 0; n <= f[2]; n++) opts += '<option' + (v === n ? ' selected' : '') + '>' + n + '</option>';
+          return '<td><select data-k="' + f[0] + '" aria-label="' + esc(p.player) + ' ' + f[1] + '">' + opts + '</select></td>';
+        }).join('') + '</tr>';
+    }).join('') + '</tbody></table></div>';
+  $('playerList').querySelector('.box-wrap').scrollLeft = left;
   updateTotal();
 }
 
@@ -617,12 +629,24 @@ function updateTotal() {
     : '&middot; <span class="warn">score shows ' + posted + '</span>';
 }
 
-function setStat(player, k, v) {
-  var l = lineFor(player); if (!l) return;
+// Picking a number for a player who is not checked in checks them in.
+function setStat(tr, k, v) {
+  var p = B.people[+tr.dataset.i], l = lineFor(p.player);
+  if (!l) { l = B.lines[p.player] = newLine(p.player, p.number); tr.className = 'in'; tr.querySelector('input').checked = true; }
   l[k] = v;
   // Made can never be more than tried: raising made raises tried, lowering tried lowers made.
   if (ATT_OF[k] && !isOff(ATT_OF[k]) && l[ATT_OF[k]] < v) l[ATT_OF[k]] = v;
   if (MADE_OF[k] && l[MADE_OF[k]] > v) l[MADE_OF[k]] = v;
+  // Update just this row, so the table does not jump while numbers are being picked.
+  tr.querySelectorAll('select[data-k]').forEach(function (s) { if (l[s.dataset.k] !== '') s.value = String(l[s.dataset.k]); });
+  tr.querySelector('.pts').textContent = linePts(l);
+  saveDraft(); updateTotal();
+}
+
+function setPlayed(tr, on) {
+  var p = B.people[+tr.dataset.i];
+  if (on && !lineFor(p.player)) B.lines[p.player] = newLine(p.player, p.number);
+  if (!on) { var k = Object.keys(B.lines).find(function (n) { return VBN.norm(n) === VBN.norm(p.player); }); if (k) delete B.lines[k]; }
   saveDraft(); renderBox();
 }
 
@@ -638,7 +662,7 @@ function toggleKept(key) {
 
 function boxReview() {
   var names = Object.keys(B.lines);
-  if (!names.length) return say('Tap at least one player who played.', true);
+  if (!names.length) return say('Check at least one player who played.', true);
   say('');
   var g = B.game, rows = names.map(function (n) { return B.lines[n]; }).sort(function (a, b) { return linePts(b) - linePts(a); });
   $('boxConfirmText').innerHTML = '<b>' + esc(teamName(B.team, g.gender)) + '</b>, ' + esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '<br>' +
@@ -703,23 +727,10 @@ document.addEventListener('DOMContentLoaded', function () {
   $('statGameList').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickStatGame(b.dataset.id); });
   $('teamPick').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickTeam(b.dataset.team); });
   $('keptChips').addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (b) toggleKept(b.dataset.k); });
-  $('playerList').addEventListener('click', function (e) {
-    var row = e.target.closest('.prow'); if (!row) return;
-    var name = row.dataset.p, act = e.target.closest('[data-act]');
-    if (act && act.dataset.act === 'remove') { var k = Object.keys(B.lines).find(function (n) { return VBN.norm(n) === VBN.norm(name); }); delete B.lines[k]; B.open = ''; saveDraft(); return renderBox(); }
-    if (act && act.dataset.act === 'done') { B.open = ''; return renderBox(); }
-    if (!e.target.closest('.prow-head')) return;
-    if (!lineFor(name)) {
-      var r = B.roster.find(function (x) { return x.player === name; });
-      B.lines[name] = newLine(name, r ? r.number : ''); saveDraft();
-    }
-    B.open = B.open === name ? '' : name;
-    $('boxConfirm').hidden = true;
-    renderBox();
-  });
   $('playerList').addEventListener('change', function (e) {
-    var sel = e.target.closest('select[data-k]'); if (!sel) return;
-    setStat(sel.closest('.prow').dataset.p, sel.dataset.k, Number(sel.value));
+    var tr = e.target.closest('tr[data-i]'); if (!tr) return;
+    if (e.target.type === 'checkbox') setPlayed(tr, e.target.checked);
+    else if (e.target.dataset.k) setStat(tr, e.target.dataset.k, Number(e.target.value));
     $('boxConfirm').hidden = true;
   });
   $('addOther').addEventListener('click', function () { $('otherForm').hidden = !$('otherForm').hidden; if (!$('otherForm').hidden) $('otherName').focus(); });
@@ -730,7 +741,7 @@ document.addEventListener('DOMContentLoaded', function () {
     say('');
     name = VBN.fixCase(name);
     B.lines[name] = newLine(name, $('otherNum').value);
-    B.open = name; $('otherName').value = ''; $('otherNum').value = ''; $('otherForm').hidden = true;
+    $('otherName').value = ''; $('otherNum').value = ''; $('otherForm').hidden = true;
     saveDraft(); renderBox();
   });
   $('boxReview').addEventListener('click', boxReview);

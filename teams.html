@@ -65,16 +65,18 @@ function logoTile(t) {
   return '<span class="swatch" style="background:' + c + '"></span>';
 }
 
-// One card per team in the chosen gender, grouped by league. A team with no program that season is left out.
-function cardsFor(group, gender) {
+// One card per team in the chosen gender, grouped by VPA division (who they meet in the playoffs).
+// Only schools with a League filled in are covered, the same as everywhere else. A team with no program that season is left out.
+var DIVISIONS = ['I', 'II', 'III', 'IV', ''];
+function cardsFor(div, gender) {
   var list = TEAM_ROWS.filter(function (t) {
-    return String(t.Gender).toUpperCase() === gender && String(t.League).trim() === group && !/no team/i.test(t.Status || '');
+    return String(t.Gender).toUpperCase() === gender && VBN.hasLeague(t) && String(t.VPADiv || '').trim().toUpperCase() === div && !/no team/i.test(t.Status || '');
   }).sort(function (a, b) { return VBN.displayName(a.Team, gender).localeCompare(VBN.displayName(b.Team, gender)); });
   if (!list.length) return '';
-  return '<div class="table-title">' + VBN.esc(group) + '<span class="sub">' + list.length + ' teams</span></div><div class="teams-grid">' +
+  return '<div class="table-title">' + (div ? 'Division ' + div : 'Division not set') + '<span class="sub">' + list.length + ' teams</span></div><div class="teams-grid">' +
     list.map(function (t) {
       var s = STANDINGS[VBN.key(t.Team, gender)] || { w: 0, l: 0, lw: 0, ll: 0 };
-      var meta = [t.Mascot, t.VPADiv ? 'Division ' + t.VPADiv : '', /jv/i.test(t.Status || '') ? 'JV only' : ''].filter(Boolean).join(' &middot; ');
+      var meta = [t.Mascot, t.League, /jv/i.test(t.Status || '') ? 'JV only' : ''].filter(Boolean).map(VBN.esc).join(' &middot; ');
       return '<a class="team-card" href="team.html?team=' + encodeURIComponent(t.Team) + '&g=' + gender + '">' + logoTile(t) +
         '<span><h3>' + VBN.esc(VBN.displayName(t.Team, gender)) + '</h3><div class="meta">' + meta + '</div>' +
         '<div class="rec">' + VBN.recText(s.w, s.l) + ' <span class="muted" style="font-weight:500;">(' + VBN.recText(s.lw, s.ll) + ' league)</span></div></span></a>';
@@ -84,7 +86,7 @@ function cardsFor(group, gender) {
 function render() {
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
   history.replaceState(null, '', location.pathname + '?g=' + STATE.g);
-  var html = VBN.leagueList(TEAM_ROWS, STATE.g, false).map(function (g) { return cardsFor(g, STATE.g); }).join('');
+  var html = DIVISIONS.map(function (d) { return cardsFor(d, STATE.g); }).join('');
   document.getElementById('teamsOut').innerHTML = html || '<p class="empty">No teams found.</p>';
 }
 

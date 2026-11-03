@@ -38,7 +38,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>Standings &amp; <em>Index Points</em></h1>
-    <p>League view: records within each league. VPA view: teams grouped by playoff division and ranked by index points, the number the VPA uses to seed the tournament. Records count only games marked Final.</p>
+    <p>Division view: teams grouped by VPA playoff division and ranked by index points, the number the VPA uses to seed the tournament. League view: records within each league. Records count only games marked Final.</p>
   </div>
 </section>
 
@@ -49,7 +49,7 @@
         <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
       </div>
       <div class="tab-row" id="viewTabs" role="group" aria-label="Standings view">
-        <button class="tab" data-v="league">League</button><button class="tab" data-v="vpa">VPA Index</button>
+        <button class="tab" data-v="vpa">Division</button><button class="tab" data-v="league">League</button>
       </div>
       <select class="select" id="divSelect" aria-label="League or division"></select>
     </div>
@@ -64,7 +64,7 @@
 <footer id="site-footer"></footer>
 
 <script>
-var STATE = { g: 'B', v: 'league', div: '' };
+var STATE = { g: 'B', v: 'vpa', div: '' };   // divisions first: that is how the playoffs are seeded
 var ROWS = [], TEAM_ROWS = [];
 var VPA_GROUPS = ['I', 'II', 'III', 'IV'];
 
@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function () {
   VBN.renderChrome('standings.html');
   var p = new URLSearchParams(location.search);
   if (/^[BG]$/.test(p.get('g') || '')) STATE.g = p.get('g');
-  if (p.get('view') === 'vpa') STATE.v = 'vpa';
+  if (p.get('view') === 'league') STATE.v = 'league';
   STATE.div = p.get('div') || '';
   document.getElementById('genderTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; update(); } });
   document.getElementById('viewTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.v = b.dataset.v; STATE.div = ''; update(); } });

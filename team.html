@@ -96,8 +96,8 @@ function heroHTML(t, s, g) {
     : '<span class="big-swatch" style="background:' + (/^#[0-9a-f]{6}$/i.test(t.PrimaryColor || '') ? t.PrimaryColor : '#3a3a3e') + '"></span>';
   var facts = [
     ['Overall', VBN.recText(s.w, s.l)],
+    t.VPADiv ? ['Division', t.VPADiv] : null,
     t.League ? ['League', VBN.recText(s.lw, s.ll) + ' ' + t.League] : null,
-    t.VPADiv ? ['VPA', 'Division ' + t.VPADiv] : null,
     t.Coach ? ['Coach', t.Coach] : null,
     s.streak ? ['Streak', s.streak] : null
   ].filter(Boolean);
@@ -142,13 +142,14 @@ function rankHTML(t, r) {
       (lines ? '<div class="lines">' + lines + '</div>' : '') + '</div>';
   };
   var both = function (lr, dr) {
-    return '<b>' + placeText(lr) + '</b> in ' + VBN.esc(r.league || 'league') + (r.div ? ' &middot; <b>' + placeText(dr) + '</b> in Division ' + VBN.esc(r.div) : '');
+    // Division first: that is who a team meets in the playoffs.
+    return (r.div ? '<b>' + placeText(dr) + '</b> in Division ' + VBN.esc(r.div) + ' &middot; ' : '') + '<b>' + placeText(lr) + '</b> in ' + VBN.esc(r.league || 'league');
   };
   var s = r.s;
   return '<div class="rank-grid">' +
-    box('League Standing', placeText(r.leaguePlace), 'of ' + r.leagueSize + ' in ' + VBN.esc(r.league), 'League record ' + VBN.recText(s.lw, s.ll)) +
     box('Division Standing', placeText(r.divPlace), r.div ? 'of ' + r.divSize + ' tracked teams in Div. ' + VBN.esc(r.div) : '',
         s.avg === null ? 'No index games yet' : 'Index average <b>' + s.avg.toFixed(3) + '</b> (unofficial)') +
+    box('League Standing', placeText(r.leaguePlace), 'of ' + r.leagueSize + ' in ' + VBN.esc(r.league), 'League record ' + VBN.recText(s.lw, s.ll)) +
     box('Points Per Game', r.ppg === null ? '&ndash;' : r.ppg.toFixed(1), '', r.ppg === null ? 'No final games yet' : both(r.leaguePpgRank, r.divPpgRank)) +
     box('Points Allowed', r.oppg === null ? '&ndash;' : r.oppg.toFixed(1), '', r.oppg === null ? 'No final games yet' : both(r.leagueOppgRank, r.divOppgRank)) +
     '</div>';

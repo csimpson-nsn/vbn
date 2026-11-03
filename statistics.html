@@ -38,7 +38,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>Stat <em>Leaders</em></h1>
-    <p>Season leaders across every team we track. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. League leaderboards have minimums; pick a team to see everyone.</p>
+    <p>Season leaders across every team we track. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
   </div>
 </section>
 
@@ -49,8 +49,9 @@
         <button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
       </div>
       <div class="tab-row" id="divTabs" role="group" aria-label="Division">
-        <button class="tab" data-d="">All</button><button class="tab" data-d="Metro">Metro</button><button class="tab" data-d="Lake">Lake</button><button class="tab" data-d="Capital">Capital</button><button class="tab" data-d="Mountain">Mountain</button>
+        <button class="tab" data-d="">All</button><button class="tab" data-d="I">Div. I</button><button class="tab" data-d="II">Div. II</button><button class="tab" data-d="III">Div. III</button><button class="tab" data-d="IV">Div. IV</button>
       </div>
+      <select class="select" id="leagueSelect" aria-label="League"><option value="">All leagues</option></select>
       <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
     </div>
     <div class="tab-row" id="catTabs" role="group" aria-label="Stat category" style="margin-bottom:22px;"></div>
@@ -67,7 +68,7 @@
 
 <script>
 var PAGE_SIZE = 10;
-// League leaderboard minimums. Ignored when a single team is picked (team view shows everyone).
+// Leaderboard minimums. Ignored when a single team is picked (team view shows everyone).
 var MIN_GAME_SHARE = 0.5;                       // must play at least half of the team's final games
 var MIN_ATTEMPTS_PER_GAME = { 'FG%': 4, '3P%': 1.5, 'FT%': 2 };
 
@@ -78,7 +79,15 @@ var CATS = [
   { id: 'FG%', label: 'FG%', made: 'FGM', att: 'FGA' }, { id: '3P%', label: '3P%', made: '3PM', att: '3PA' },
   { id: 'FT%', label: 'FT%', made: 'FTM', att: 'FTA' }
 ];
-var STATE = { g: 'B', d: '', team: '', cat: 'PTS', sort: null, page: 1 };
+var TEAM_ROWS = [];
+var STATE = { g: 'B', d: '', lg: '', team: '', cat: 'PTS', sort: null, page: 1 };   // d: VPA division (shown first), lg: league
+
+// Does this team fit the division tab and the league picked? Blank filters always fit.
+function fitsFilters(team, gender, st) {
+  if (!VBN.isMember(team, gender)) return false;
+  if (st.d && VBN.vpaDiv(team, gender) !== st.d) return false;
+  return !st.lg || VBN.leagueOf(team, gender) === st.lg;
+}
 var PLAYERS = [], SCHEDULE = [], TEAM_FINALS = {}, STATS_READY = false;
 
 function catOf(id) { return CATS.filter(function (c) { return c.id === id; })[0] || CATS[0]; }
@@ -99,8 +108,7 @@ function buildRows(players, st, teamFinals) {
   var list = players.filter(function (p) {
     if (p.gender !== st.g) return false;
     if (st.team) return VBN.norm(p.team) === VBN.norm(st.team);
-    if (st.d && VBN.leagueOf(p.team, p.gender) !== st.d) return false;
-    return VBN.isMember(p.team, p.gender);
+    return fitsFilters(p.team, p.gender, st);
   }).map(function (p) {
     var r = { p: p, gp: p.gp };
     if (cat.made) {
@@ -178,6 +186,11 @@ function render() {
 function syncControls() {
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
   document.querySelectorAll('#divTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.d === STATE.d); });
+  var leagues = VBN.leagueList(TEAM_ROWS, STATE.g, true);
+  if (STATE.lg && leagues.length && leagues.indexOf(STATE.lg) === -1) STATE.lg = '';
+  document.getElementById('leagueSelect').innerHTML = '<option value="">All leagues</option>' + leagues.map(function (l) {
+    return '<option value="' + VBN.esc(l) + '"' + (l === STATE.lg ? ' selected' : '') + '>' + VBN.esc(l) + '</option>';
+  }).join('');
   document.getElementById('catTabs').innerHTML = CATS.map(function (c) {
     return '<button class="tab' + (c.id === STATE.cat ? ' active' : '') + '" data-c="' + c.id + '">' + c.label + '</button>';
   }).join('');
@@ -185,7 +198,7 @@ function syncControls() {
   SCHEDULE.forEach(function (g) {
     if (String(g.Gender).toUpperCase() !== STATE.g) return;
     [g.Team1, g.Team2].forEach(function (t) {
-      if (t && VBN.isMember(t, STATE.g) && (!STATE.d || VBN.leagueOf(t, STATE.g) === STATE.d)) seen[t] = true;
+      if (t && fitsFilters(t, STATE.g, STATE)) seen[t] = true;
     });
   });
   var names = Object.keys(seen).sort(function (a, b) { return a.toLowerCase().localeCompare(b.toLowerCase()); });
@@ -203,6 +216,7 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('divTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.d = b.dataset.d; update(true); } });
   document.getElementById('catTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.cat = b.dataset.c; update(); } });
   document.getElementById('teamSelect').addEventListener('change', function (e) { STATE.team = e.target.value; update(true); });
+  document.getElementById('leagueSelect').addEventListener('change', function (e) { STATE.lg = e.target.value; update(true); });
   document.getElementById('statsOut').addEventListener('click', function (e) {
     var th = e.target.closest('th.sortable'); if (!th) return;
     STATE.sort = th.dataset.sort; STATE.page = 1; render();
@@ -213,6 +227,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Four sources at once. Stats and Roster are optional: a missing roster only means names are not tidied.
   Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('stats'), VBN.loadSource('roster')]).then(function (res) {
+    TEAM_ROWS = res[0].status === 'fulfilled' ? res[0].value : [];
     SCHEDULE = res[1].status === 'fulfilled' ? res[1].value : [];
     TEAM_FINALS = finalsByTeam(SCHEDULE);
     if (res[2].status === 'fulfilled' && res[2].value.length) {
