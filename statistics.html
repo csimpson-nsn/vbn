@@ -18,6 +18,14 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="assets/vbn.css">
+<style>
+/* Full stat line table: the player column stays put while the stats slide sideways on a phone. */
+.stat-line th.pcol,.stat-line td.pcol{position:sticky;left:0;z-index:1;background:var(--court);box-shadow:1px 0 0 var(--line);}
+.stat-line td.pcol .sub{display:block;font-size:.8rem;color:var(--steel);font-weight:500;margin-top:2px;}
+.stat-line td.pcol .crest{width:16px;height:16px;}
+.stat-line th.grp{border-left:1px solid var(--line);}
+.stat-line td.grp{border-left:1px solid #1a1a1d;}
+</style>
 <script src="assets/vbn.js"></script>
 </head>
 <body>
@@ -38,7 +46,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>Stat <em>Leaders</em></h1>
-    <p>Season leaders across every team we track. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
+    <p>Every player's full stat line, per game. Tap any column to sort by it. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
   </div>
 </section>
 
@@ -54,7 +62,6 @@
       <select class="select" id="leagueSelect" aria-label="League"><option value="">All leagues</option></select>
       <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
     </div>
-    <div class="tab-row" id="catTabs" role="group" aria-label="Stat category" style="margin-bottom:22px;"></div>
     <div id="minNote" class="note" style="display:none;"></div>
     <div id="statsOut"><p class="empty">Loading stats&hellip;</p></div>
     <div class="pager" id="pager" style="display:none;">
@@ -67,20 +74,21 @@
 <footer id="site-footer"></footer>
 
 <script>
-var PAGE_SIZE = 10;
+var PAGE_SIZE = 25;
 // Leaderboard minimums. Ignored when a single team is picked (team view shows everyone).
 var MIN_GAME_SHARE = 0.5;                       // must play at least half of the team's final games
 var MIN_ATTEMPTS_PER_GAME = { 'FG%': 4, '3P%': 1.5, 'FT%': 2 };
 
-var CATS = [
-  { id: 'PTS', label: 'Points', col: 'PTS' }, { id: 'REB', label: 'Rebounds', col: 'REB' },
-  { id: 'AST', label: 'Assists', col: 'AST' }, { id: 'STL', label: 'Steals', col: 'STL' },
-  { id: 'BLK', label: 'Blocks', col: 'BLK' }, { id: '3PM', label: '3-Pointers', col: '3PM' },
-  { id: 'FG%', label: 'FG%', made: 'FGM', att: 'FGA' }, { id: '3P%', label: '3P%', made: '3PM', att: '3PA' },
-  { id: 'FT%', label: 'FT%', made: 'FTM', att: 'FTA' }
+// One row per player with the whole stat line. Each column sorts. [key, header, kind, made, att]
+// 'per': per-game average from p.per. 'pct': shooting percentage from season totals.
+var COLS = [
+  ['GP', 'GP', 'gp'],
+  ['PTS', 'PPG', 'per'], ['REB', 'RPG', 'per'], ['AST', 'APG', 'per'], ['STL', 'SPG', 'per'], ['BLK', 'BPG', 'per'],
+  ['FG%', 'FG%', 'pct', 'FGM', 'FGA'], ['3PM', '3PM', 'per'], ['3P%', '3P%', 'pct', '3PM', '3PA'], ['FT%', 'FT%', 'pct', 'FTM', 'FTA']
 ];
+var GROUP_START = { 'FG%': true };   // a thin line between the counting stats and the shooting stats
 var TEAM_ROWS = [];
-var STATE = { g: 'B', d: '', lg: '', team: '', cat: 'PTS', sort: null, page: 1 };   // d: VPA division (shown first), lg: league
+var STATE = { g: 'B', d: '', lg: '', team: '', sort: 'PTS', page: 1 };   // d: VPA division (shown first), lg: league
 
 // Does this team fit the division tab and the league picked? Blank filters always fit.
 function fitsFilters(team, gender, st) {
@@ -90,51 +98,37 @@ function fitsFilters(team, gender, st) {
 }
 var PLAYERS = [], SCHEDULE = [], TEAM_FINALS = {}, STATS_READY = false;
 
-function catOf(id) { return CATS.filter(function (c) { return c.id === id; })[0] || CATS[0]; }
-
-// Columns for the current category: [key, header, numeric?, formatter]
-function columns(cat) {
-  if (cat.made) return [
-    ['gp', 'GP', true, String], ['made', 'Made', true, String], ['att', 'Att', true, String],
-    ['pct', cat.label, true, function (v) { return v === null ? '&ndash;' : (v * 100).toFixed(1); }]];
-  return [
-    ['gp', 'GP', true, String], ['tracked', 'Games w/ Stat', true, String], ['total', 'Total', true, String],
-    ['per', 'Per Game', true, function (v) { return v === null ? '&ndash;' : v.toFixed(1); }]];
+function colOf(key) { return COLS.filter(function (c) { return c[0] === key; })[0] || COLS[1]; }
+function cellValue(p, c) {
+  if (c[2] === 'gp') return p.gp;
+  if (c[2] === 'pct') { var a = p.tot[c[4]] || 0; return a ? (p.tot[c[3]] || 0) / a : null; }
+  return p.per[c[0]] === undefined ? null : p.per[c[0]];
+}
+function cellText(v, c) {
+  if (v === null) return '&ndash;';
+  return c[2] === 'gp' ? String(v) : c[2] === 'pct' ? (v * 100).toFixed(1) : v.toFixed(1);
 }
 
-// Build the leaderboard rows for the current filters. Pure logic, no page access.
+// Build the rows for the current filters and sort. Pure logic, no page access.
+// All-teams view: a player must have played at least half of the team's final games. Sorting by a
+// shooting percentage also needs enough attempts per team game, so one 1-for-1 night does not lead.
 function buildRows(players, st, teamFinals) {
-  var cat = catOf(st.cat);
+  var sortCol = colOf(st.sort);
   var list = players.filter(function (p) {
     if (p.gender !== st.g) return false;
     if (st.team) return VBN.norm(p.team) === VBN.norm(st.team);
-    return fitsFilters(p.team, p.gender, st);
-  }).map(function (p) {
-    var r = { p: p, gp: p.gp };
-    if (cat.made) {
-      r.made = p.tot[cat.made] || 0; r.att = p.tot[cat.att] || 0; r.pct = r.att ? r.made / r.att : null;
-    } else {
-      r.tracked = p.tracked[cat.col] || 0; r.total = p.tot[cat.col] || 0; r.per = p.per[cat.col];
-    }
-    return r;
-  }).filter(function (r) { return cat.made ? r.att > 0 : r.tracked > 0; });
-
-  if (!st.team) {
-    list = list.filter(function (r) {
-      var finals = teamFinals[VBN.key(r.p.team, r.p.gender)] || r.p.gp;
-      if (r.p.gp < Math.max(1, Math.ceil(finals * MIN_GAME_SHARE))) return false;
-      if (cat.made) return r.att >= MIN_ATTEMPTS_PER_GAME[cat.id] * finals;
-      return true;
-    });
-  }
-  var sortKey = st.sort || (cat.made ? 'pct' : 'per');
+    if (!fitsFilters(p.team, p.gender, st)) return false;
+    var finals = teamFinals[VBN.key(p.team, p.gender)] || p.gp;
+    if (p.gp < Math.max(1, Math.ceil(finals * MIN_GAME_SHARE))) return false;
+    if (sortCol[2] === 'pct') return (p.tot[sortCol[4]] || 0) >= MIN_ATTEMPTS_PER_GAME[sortCol[0]] * finals;
+    return true;
+  }).map(function (p) { return { p: p, v: cellValue(p, sortCol) }; });
   list.sort(function (a, b) {
-    var x = a[sortKey], y = b[sortKey];
-    if (x === null) x = -1; if (y === null) y = -1;
-    return (y - x) || (b.gp - a.gp) || a.p.player.localeCompare(b.p.player);
+    var x = a.v === null ? -1 : a.v, y = b.v === null ? -1 : b.v;
+    return (y - x) || (b.p.gp - a.p.gp) || a.p.player.localeCompare(b.p.player);
   });
   list.forEach(function (r, i) { r.rank = i + 1; });          // true rank across all pages
-  return { rows: list, sortKey: sortKey };
+  return { rows: list, sortKey: sortCol[0] };
 }
 
 function finalsByTeam(schedule) {
@@ -152,13 +146,13 @@ function render() {
     out.innerHTML = '<p class="empty">Player stats will appear here once the season tips off and box scores start coming in.</p>';
     pager.style.display = 'none'; note.style.display = 'none'; return;
   }
-  var cat = catOf(STATE.cat), built = buildRows(PLAYERS, STATE, TEAM_FINALS), rows = built.rows;
-  var cols = columns(cat);
+  var built = buildRows(PLAYERS, STATE, TEAM_FINALS), rows = built.rows, sortCol = colOf(built.sortKey);
   if (STATE.team) note.style.display = 'none';
   else {
     note.style.display = '';
     note.innerHTML = '<b>Minimums:</b> played at least half of the team\'s games' +
-      (cat.made ? ', and at least ' + MIN_ATTEMPTS_PER_GAME[cat.id] + ' ' + cat.att.replace('A', ' attempts') + ' per team game' : '') + '. Pick a team to see every player.';
+      (sortCol[2] === 'pct' ? ', and at least ' + MIN_ATTEMPTS_PER_GAME[sortCol[0]] + ' ' + sortCol[4].replace('A', ' attempts') + ' per team game while sorted by ' + sortCol[1] : '') +
+      '. Pick a team to see every player.';
   }
   if (!rows.length) {
     out.innerHTML = '<p class="empty">No players meet the minimums for this view yet.</p>'; pager.style.display = 'none'; return;
@@ -166,16 +160,19 @@ function render() {
   var pages = Math.ceil(rows.length / PAGE_SIZE);
   if (STATE.page > pages) STATE.page = pages;
   var slice = rows.slice((STATE.page - 1) * PAGE_SIZE, STATE.page * PAGE_SIZE);
-  out.innerHTML = '<div class="table-wrap"><table class="data-table"><thead><tr><th>#</th><th>Player</th><th>Team</th><th>Gr.</th>' +
-    cols.map(function (c) {
-      return '<th class="num sortable' + (c[0] === built.sortKey ? ' sorted' : '') + '" data-sort="' + c[0] + '">' + c[1] + (c[0] === built.sortKey ? ' &#9660;' : '') + '</th>';
+  out.innerHTML = '<div class="table-wrap"><table class="data-table stat-line"><thead><tr><th>#</th><th class="pcol">Player</th><th>Gr.</th>' +
+    COLS.map(function (c) {
+      var on = c[0] === built.sortKey;
+      return '<th class="num sortable' + (on ? ' sorted' : '') + (GROUP_START[c[0]] ? ' grp' : '') + '" data-sort="' + c[0] + '">' + c[1] + (on ? ' &#9660;' : '') + '</th>';
     }).join('') + '</tr></thead><tbody>' +
     slice.map(function (r) {
       var p = r.p;
-      return '<tr><td class="rank">' + r.rank + '</td><td><b>' + VBN.esc(p.player) + '</b>' + (p.number ? ' <span class="dim">#' + VBN.esc(p.number) + '</span>' : '') + '</td>' +
-        '<td><span class="tcell">' + VBN.crestHTML(p.team, p.gender) + VBN.esc(VBN.displayName(p.team, p.gender)) + '</span></td>' +
+      return '<tr><td class="rank">' + r.rank + '</td><td class="pcol"><b>' + VBN.esc(p.player) + '</b>' + (p.number ? ' <span class="dim">#' + VBN.esc(p.number) + '</span>' : '') +
+        '<span class="sub"><span class="tcell">' + VBN.crestHTML(p.team, p.gender) + VBN.esc(VBN.displayName(p.team, p.gender)) + '</span></span></td>' +
         '<td class="dim">' + (p.grade || '&ndash;') + '</td>' +
-        cols.map(function (c) { return '<td class="num' + (c[0] === built.sortKey ? ' hl' : '') + '">' + c[3](r[c[0]]) + '</td>'; }).join('') + '</tr>';
+        COLS.map(function (c) {
+          return '<td class="num' + (c[0] === built.sortKey ? ' hl' : '') + (GROUP_START[c[0]] ? ' grp' : '') + '">' + cellText(cellValue(p, c), c) + '</td>';
+        }).join('') + '</tr>';
     }).join('') + '</tbody></table></div>';
   pager.style.display = pages > 1 ? '' : 'none';
   document.getElementById('pageInfo').textContent = 'Page ' + STATE.page + ' of ' + pages;
@@ -191,9 +188,6 @@ function syncControls() {
   document.getElementById('leagueSelect').innerHTML = '<option value="">All leagues</option>' + leagues.map(function (l) {
     return '<option value="' + VBN.esc(l) + '"' + (l === STATE.lg ? ' selected' : '') + '>' + VBN.esc(l) + '</option>';
   }).join('');
-  document.getElementById('catTabs').innerHTML = CATS.map(function (c) {
-    return '<button class="tab' + (c.id === STATE.cat ? ' active' : '') + '" data-c="' + c.id + '">' + c.label + '</button>';
-  }).join('');
   var seen = {};
   SCHEDULE.forEach(function (g) {
     if (String(g.Gender).toUpperCase() !== STATE.g) return;
@@ -207,14 +201,13 @@ function syncControls() {
     return '<option value="' + VBN.esc(n) + '"' + (n === STATE.team ? ' selected' : '') + '>' + VBN.esc(VBN.displayName(n, STATE.g)) + '</option>';
   }).join('');
 }
-// Any change to filters, category, or sort goes back to page 1.
-function update(keepSort) { if (!keepSort) STATE.sort = null; STATE.page = 1; syncControls(); render(); }
+// Any change to filters or sort goes back to page 1. Changing boys/girls goes back to sorting by points.
+function update(keepSort) { if (!keepSort) STATE.sort = 'PTS'; STATE.page = 1; syncControls(); render(); }
 
 document.addEventListener('DOMContentLoaded', function () {
   VBN.renderChrome('statistics.html');
   document.getElementById('genderTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.g = b.dataset.g; update(); } });
   document.getElementById('divTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.d = b.dataset.d; update(true); } });
-  document.getElementById('catTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.cat = b.dataset.c; update(); } });
   document.getElementById('teamSelect').addEventListener('change', function (e) { STATE.team = e.target.value; update(true); });
   document.getElementById('leagueSelect').addEventListener('change', function (e) { STATE.lg = e.target.value; update(true); });
   document.getElementById('statsOut').addEventListener('click', function (e) {
