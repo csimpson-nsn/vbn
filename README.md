@@ -17,6 +17,7 @@ statistics.html     Player stat leaders with minimums, 10 per page
 teams.html          Directory of every team with a League, Boys/Girls tabs, grouped by league
 team.html           One team page for every school (team.html?team=Lyndon&g=B), Boys/Girls toggle,
                     league and division standing, PPG and points allowed ranks, schedule, roster, stats
+team-download.html  Printable schedule & roster PDF for one team (reached from the button on team.html)
 data-cache.php      Fetches and saves Google Sheet tabs (NSN server only)
 assets/vbn.css      Shared look for every page (colors, header, cards)
 assets/vbn.js       Shared code for every page (data loading, team lookup, game cards, header, footer)
@@ -29,9 +30,20 @@ All data lives in the **VBN Data Hub** Google Sheet. The pages read **Schedule**
 
 Stats tab: one row per player per game. GameID ties the row to a Schedule game. A blank cell means "not reported," which is different from 0.
 
+Stats tab columns: GameID, Team, Player, Number, 2PM, 2PA, 3PM, 3PA, FTM, FTA, REB, AST, STL, BLK. There is no points column:
+the site works out points (2 x 2PM + 3 x 3PM + FTM) and field goals (2s plus 3s). If a PTS column is ever added, the site
+shows a warning when the typed points do not match the shots and uses the shots.
+
 On the NSN server, pages read through `data-cache.php`. On GitHub, PHP does not run, so the pages read the published Google links directly. No change to the files is needed when moving from GitHub to the NSN server.
 
 Adding a new Sheet tab means two one-line changes: the `$SOURCES` list in `data-cache.php` and the `GOOGLE` list at the top of `assets/vbn.js`.
+
+## Team sponsors
+
+Team page logos and the printable PDF sponsor come from the **SponsorDirectory** tab (columns SponsorTag, Name, URL, LogoPath).
+Tag a row `TeamPage-Lyndon` for a logo on the Lyndon team page (boys and girls), `TeamPage-Lyndon-Girls` (or `-Boys`) for one side only,
+and `TeamPDF-Lyndon` for the "Presented by" logo on the printable schedule & roster. Logos go in `assets/sponsors/`. A URL makes the logo clickable.
+Every team page also shows two open "your business here" spots, so the space is always for sale.
 
 ## Live scores
 

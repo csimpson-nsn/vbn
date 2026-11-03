@@ -23,7 +23,7 @@
 // Add one line here any time a new tab needs to reach the site.
 $SOURCES = [
     'schedule' => 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=0&single=true&output=csv',
-    // 'stats'  => 'PASTE the published Stats tab CSV link here, then remove the // at the start of this line',
+    'stats'    => 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=598806204&single=true&output=csv',
     'roster'   => 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv',
     'sponsors' => 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=174841060&single=true&output=csv',
     'teams'    => 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv',
