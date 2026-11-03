@@ -71,6 +71,40 @@ img{max-width:100%;display:block;}
 .sponsor-cta{font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--yellow);text-transform:uppercase;letter-spacing:.05em;}
 .sponsor-cta:hover{color:var(--snow);}
 
+/* team page sponsors: a strip under the team banner, or a rail down the right side on wide screens.
+   Logos sit on white tiles so any logo reads on the dark page. */
+.team-sponsors{background:var(--court);border-bottom:1px solid var(--line);padding:24px 0;}
+.team-sponsors[hidden]{display:none;}
+.team-sponsors-head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:14px;}
+.team-sponsors-head .eyebrow,.sponsor-rail .eyebrow{color:var(--yellow);}
+.sponsor-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;}
+.sponsor-tile{background:#fff;border-radius:6px;height:104px;display:flex;align-items:center;justify-content:center;padding:12px 16px;border:2px solid transparent;transition:transform .15s,border-color .15s;}
+.sponsor-tile img{max-width:100%;max-height:100%;object-fit:contain;}
+.sponsor-tile .sponsor-name{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:1.15rem;color:var(--ink);text-align:center;}
+a.sponsor-tile:hover{transform:translateY(-2px);border-color:var(--yellow);}
+.sponsor-tile.open-spot{background:transparent;border:2px dashed var(--line);color:var(--steel);font-family:'Barlow Condensed',sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.05em;font-size:.925rem;text-align:center;line-height:1.3;}
+a.sponsor-tile.open-spot:hover{color:var(--yellow);border-color:var(--yellow);}
+.sponsor-rail,.sponsor-rail[hidden]{display:none;}
+@media (min-width:1100px){
+  .team-layout{display:grid;grid-template-columns:minmax(0,1fr) 220px;gap:8px;max-width:1536px;margin:0 auto;padding-right:28px;}
+  .team-layout > .section{min-width:0;}
+  .sponsor-rail:not([hidden]){display:block;}
+  .sponsor-rail-inner{position:sticky;top:96px;padding-top:40px;}
+  .sponsor-rail .eyebrow{display:block;margin-bottom:14px;line-height:1.5;}
+  .sponsor-rail-tiles{display:flex;flex-direction:column;gap:12px;}
+  .sponsor-rail .link{display:inline-block;margin-top:14px;white-space:normal;}
+  .team-sponsors.rail-active{display:none;}
+}
+@media (max-width:640px){
+  .sponsor-row{grid-template-columns:1fr 1fr;gap:10px;}
+  .sponsor-tile{height:88px;padding:10px;}
+}
+.print-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin:-6px 0 28px;}
+.print-row[hidden]{display:none;}
+.print-note{font-family:'Barlow Condensed',sans-serif;font-size:.975rem;color:var(--steel);}
+.print-note a{color:var(--yellow);border-bottom:1px solid var(--yellow);}
+.print-note a:hover{color:var(--snow);border-color:var(--snow);}
+
 /* page hero */
 .page-hero{padding:48px 0 34px;border-bottom:1px solid var(--line);
   background:radial-gradient(ellipse at 90% 130%,rgba(242,113,28,.26),transparent 55%),linear-gradient(135deg,rgba(29,122,69,.2),transparent 55%),var(--court);}

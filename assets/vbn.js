@@ -18,7 +18,8 @@ var VBN = (function () {
     schedule: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=0&single=true&output=csv',
     teams:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv',
     stats:    '',   // paste the published Stats tab link here once the tab exists
-    roster:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv'
+    roster:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv',
+    sponsors: ''    // paste the published SponsorDirectory tab link here once the tab exists
   };
 
   var CONTACT = 'csimpson@nsnsports.net';
@@ -131,6 +132,20 @@ var VBN = (function () {
     }
     var color = t && validHex(t.PrimaryColor) ? t.PrimaryColor.trim() : '#3a3a3e';
     return '<span class="crest" style="background:' + esc(color) + '"></span>';
+  }
+
+  /* ---------- sponsors ----------
+     SponsorDirectory tab: SponsorTag, Name, URL, LogoPath. Team sponsors are tagged by school
+     (the Team column on the Teams tab; case and periods do not matter):
+       TeamPage-Lyndon         team page logos, boys and girls
+       TeamPage-Lyndon-Girls   team page logos, girls only (or -Boys)
+       TeamPDF-Lyndon          printable schedule & roster, same -Boys / -Girls option */
+  function sponsorsFor(rows, kind, name, gender) {
+    var tag = norm(kind + '-' + name), own = tag + '-' + (gender === 'G' ? 'girls' : 'boys');
+    return (rows || []).filter(function (r) {
+      var t = norm(r.SponsorTag);
+      return (t === tag || t === own) && (r.Name || r.LogoPath);
+    });
   }
 
   /* ---------- dates and times ---------- */
@@ -514,7 +529,7 @@ var VBN = (function () {
   return {
     SEASON_YEAR: SEASON_YEAR, CONTACT: CONTACT,
     esc: esc, parseCSV: parseCSV, loadSource: loadSource, loadTeams: loadTeams, setTeams: setTeams,
-    team: team, displayName: displayName, crestHTML: crestHTML, leagueOf: leagueOf, isMember: isMember, hasLeague: hasLeague, isActiveRow: isActiveRow, leagueGroup: leagueGroup, leagueList: leagueList, key: key, norm: norm,
+    team: team, displayName: displayName, crestHTML: crestHTML, sponsorsFor: sponsorsFor, leagueOf: leagueOf, isMember: isMember, hasLeague: hasLeague, isActiveRow: isActiveRow, leagueGroup: leagueGroup, leagueList: leagueList, key: key, norm: norm,
     parseDate: parseDate, parseTime: parseTime, timeLabel: timeLabel, gameStart: gameStart, sortTime: sortTime,
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
     isFinal: isFinal, isLive: isLive, isOff: isOff, isPending: isPending, computeRecords: computeRecords, num: num,
