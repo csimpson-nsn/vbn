@@ -46,7 +46,7 @@
   <div class="wrap">
     <span class="eyebrow">2026-27 Season</span>
     <h1>Stat <em>Leaders</em></h1>
-    <p>Every player's full stat line, per game. Tap any column to sort by it. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
+    <p>Every player's full stat line, per game or season totals. Tap any column to sort by it. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
   </div>
 </section>
 
@@ -60,6 +60,9 @@
         <button class="tab" data-d="">All</button><button class="tab" data-d="I">Div. I</button><button class="tab" data-d="II">Div. II</button><button class="tab" data-d="III">Div. III</button><button class="tab" data-d="IV">Div. IV</button>
       </div>
       <select class="select" id="leagueSelect" aria-label="League"><option value="">All leagues</option></select>
+      <div class="tab-row" id="modeTabs" role="group" aria-label="Averages or totals">
+        <button class="tab" data-m="avg">Averages</button><button class="tab" data-m="tot">Totals</button>
+      </div>
       <select class="select" id="teamSelect" aria-label="Team"><option value="">All teams</option></select>
     </div>
     <div id="minNote" class="note" style="display:none;"></div>
@@ -80,15 +83,26 @@ var MIN_GAME_SHARE = 0.5;                       // must play at least half of th
 var MIN_ATTEMPTS_PER_GAME = { 'FG%': 4, '3P%': 1.5, 'FT%': 2 };
 
 // One row per player with the whole stat line. Each column sorts. [key, header, kind, made, att]
-// 'per': per-game average from p.per. 'pct': shooting percentage from season totals.
-var COLS = [
-  ['GP', 'GP', 'gp'],
-  ['PTS', 'PPG', 'per'], ['REB', 'RPG', 'per'], ['AST', 'APG', 'per'], ['STL', 'SPG', 'per'], ['BLK', 'BPG', 'per'],
-  ['FG%', 'FG%', 'pct', 'FGM', 'FGA'], ['3PM', '3PM', 'per'], ['3P%', '3P%', 'pct', '3PM', '3PA'], ['FT%', 'FT%', 'pct', 'FTM', 'FTA']
-];
-var GROUP_START = { 'FG%': true };   // a thin line between the counting stats and the shooting stats
+// 'per': per-game average from p.per. 'tot': season total from p.tot. 'pct': shooting percentage from season totals.
+var COLS_BY_MODE = {
+  avg: [
+    ['GP', 'GP', 'gp'],
+    ['PTS', 'PPG', 'per'], ['REB', 'RPG', 'per'], ['AST', 'APG', 'per'], ['STL', 'SPG', 'per'], ['BLK', 'BPG', 'per'],
+    ['FG%', 'FG%', 'pct', 'FGM', 'FGA'], ['3PM', '3PM', 'per'], ['3P%', '3P%', 'pct', '3PM', '3PA'], ['FT%', 'FT%', 'pct', 'FTM', 'FTA']
+  ],
+  tot: [
+    ['GP', 'GP', 'gp'],
+    ['PTS', 'PTS', 'tot'], ['REB', 'REB', 'tot'], ['AST', 'AST', 'tot'], ['STL', 'STL', 'tot'], ['BLK', 'BLK', 'tot'],
+    ['FGM', 'FGM', 'tot'], ['FGA', 'FGA', 'tot'], ['FG%', 'FG%', 'pct', 'FGM', 'FGA'],
+    ['3PM', '3PM', 'tot'], ['3PA', '3PA', 'tot'], ['3P%', '3P%', 'pct', '3PM', '3PA'],
+    ['FTM', 'FTM', 'tot'], ['FTA', 'FTA', 'tot'], ['FT%', 'FT%', 'pct', 'FTM', 'FTA']
+  ]
+};
+// A thin line between the counting stats and the shooting stats.
+function groupStart(key) { return key === (STATE.mode === 'tot' ? 'FGM' : 'FG%'); }
 var TEAM_ROWS = [];
-var STATE = { g: 'B', d: '', lg: '', team: '', sort: 'PTS', page: 1 };   // d: VPA division (shown first), lg: league
+var STATE = { g: 'B', d: '', lg: '', team: '', mode: 'avg', sort: 'PTS', page: 1 };   // d: VPA division (shown first), lg: league
+function cols() { return COLS_BY_MODE[STATE.mode]; }
 
 // Does this team fit the division tab and the league picked? Blank filters always fit.
 function fitsFilters(team, gender, st) {
@@ -98,15 +112,16 @@ function fitsFilters(team, gender, st) {
 }
 var PLAYERS = [], SCHEDULE = [], TEAM_FINALS = {}, STATS_READY = false;
 
-function colOf(key) { return COLS.filter(function (c) { return c[0] === key; })[0] || COLS[1]; }
+function colOf(key) { return cols().filter(function (c) { return c[0] === key; })[0] || cols()[1]; }
 function cellValue(p, c) {
   if (c[2] === 'gp') return p.gp;
   if (c[2] === 'pct') { var a = p.tot[c[4]] || 0; return a ? (p.tot[c[3]] || 0) / a : null; }
+  if (c[2] === 'tot') return p.tracked[c[0]] ? p.tot[c[0]] : null;   // blank, not 0, when the team never reported it
   return p.per[c[0]] === undefined ? null : p.per[c[0]];
 }
 function cellText(v, c) {
   if (v === null) return '&ndash;';
-  return c[2] === 'gp' ? String(v) : c[2] === 'pct' ? (v * 100).toFixed(1) : v.toFixed(1);
+  return c[2] === 'gp' || c[2] === 'tot' ? String(v) : c[2] === 'pct' ? (v * 100).toFixed(1) : v.toFixed(1);
 }
 
 // Build the rows for the current filters and sort. Pure logic, no page access.
@@ -161,17 +176,17 @@ function render() {
   if (STATE.page > pages) STATE.page = pages;
   var slice = rows.slice((STATE.page - 1) * PAGE_SIZE, STATE.page * PAGE_SIZE);
   out.innerHTML = '<div class="table-wrap"><table class="data-table stat-line"><thead><tr><th>#</th><th class="pcol">Player</th><th>Gr.</th>' +
-    COLS.map(function (c) {
+    cols().map(function (c) {
       var on = c[0] === built.sortKey;
-      return '<th class="num sortable' + (on ? ' sorted' : '') + (GROUP_START[c[0]] ? ' grp' : '') + '" data-sort="' + c[0] + '">' + c[1] + (on ? ' &#9660;' : '') + '</th>';
+      return '<th class="num sortable' + (on ? ' sorted' : '') + (groupStart(c[0]) ? ' grp' : '') + '" data-sort="' + c[0] + '">' + c[1] + (on ? ' &#9660;' : '') + '</th>';
     }).join('') + '</tr></thead><tbody>' +
     slice.map(function (r) {
       var p = r.p;
       return '<tr><td class="rank">' + r.rank + '</td><td class="pcol"><b>' + VBN.esc(p.player) + '</b>' + (p.number ? ' <span class="dim">#' + VBN.esc(p.number) + '</span>' : '') +
         '<span class="sub"><span class="tcell">' + VBN.crestHTML(p.team, p.gender) + VBN.esc(VBN.displayName(p.team, p.gender)) + '</span></span></td>' +
         '<td class="dim">' + (p.grade || '&ndash;') + '</td>' +
-        COLS.map(function (c) {
-          return '<td class="num' + (c[0] === built.sortKey ? ' hl' : '') + (GROUP_START[c[0]] ? ' grp' : '') + '">' + cellText(cellValue(p, c), c) + '</td>';
+        cols().map(function (c) {
+          return '<td class="num' + (c[0] === built.sortKey ? ' hl' : '') + (groupStart(c[0]) ? ' grp' : '') + '">' + cellText(cellValue(p, c), c) + '</td>';
         }).join('') + '</tr>';
     }).join('') + '</tbody></table></div>';
   pager.style.display = pages > 1 ? '' : 'none';
@@ -183,6 +198,7 @@ function render() {
 function syncControls() {
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.g === STATE.g); });
   document.querySelectorAll('#divTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.d === STATE.d); });
+  document.querySelectorAll('#modeTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.m === STATE.mode); });
   var leagues = VBN.leagueList(TEAM_ROWS, STATE.g, true);
   if (STATE.lg && leagues.length && leagues.indexOf(STATE.lg) === -1) STATE.lg = '';
   document.getElementById('leagueSelect').innerHTML = '<option value="">All leagues</option>' + leagues.map(function (l) {
@@ -210,6 +226,13 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('divTabs').addEventListener('click', function (e) { var b = e.target.closest('.tab'); if (b) { STATE.d = b.dataset.d; update(true); } });
   document.getElementById('teamSelect').addEventListener('change', function (e) { STATE.team = e.target.value; update(true); });
   document.getElementById('leagueSelect').addEventListener('change', function (e) { STATE.lg = e.target.value; update(true); });
+  // Switching views keeps the sort when that column exists in both (PTS, FG%...); otherwise back to points.
+  document.getElementById('modeTabs').addEventListener('click', function (e) {
+    var b = e.target.closest('.tab'); if (!b) return;
+    STATE.mode = b.dataset.m;
+    if (!cols().some(function (c) { return c[0] === STATE.sort; })) STATE.sort = 'PTS';
+    update(true);
+  });
   document.getElementById('statsOut').addEventListener('click', function (e) {
     var th = e.target.closest('th.sortable'); if (!th) return;
     STATE.sort = th.dataset.sort; STATE.page = 1; render();
