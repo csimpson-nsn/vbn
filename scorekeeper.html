@@ -62,7 +62,35 @@
 .pend .row{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap;align-items:center;}
 .btn.reject{background:var(--court);color:var(--snow);border:1px solid var(--live);}
 .btn.reject:hover{background:var(--live);}
+select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:center;text-align-last:center;}
+.scores select.input{font-family:'Anton',sans-serif;font-size:2rem;}
+.pend table{width:100%;border-collapse:collapse;margin-top:10px;font-size:.9rem;}
+.pend th,.pend td{padding:5px 6px;border-bottom:1px solid var(--line);text-align:center;white-space:nowrap;}
+.pend th{font-family:'Barlow Condensed',sans-serif;color:var(--steel);font-weight:700;font-size:.78rem;letter-spacing:.06em;}
+.pend td:first-child,.pend th:first-child{text-align:left;}
+.pend .tablewrap{overflow-x:auto;}
+.warn{color:var(--yellow);}
+/* box score */
+.teams2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.chip{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:.88rem;background:var(--ink);color:var(--steel);border:1px solid var(--line);padding:8px 12px;cursor:pointer;}
+.chip.on{background:var(--green);border-color:var(--green);color:var(--snow);}
+.players{display:flex;flex-direction:column;gap:8px;margin-top:14px;}
+.prow{background:var(--ink);border:1px solid var(--line);}
+.prow.in{border-color:var(--green);}
+.prow-head{width:100%;background:none;border:none;color:var(--snow);display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:1rem;text-align:left;}
+.prow-head .num{font-family:'Anton',sans-serif;color:var(--steel);display:inline-block;min-width:34px;}
+.prow-head .pts{font-family:'Barlow Condensed',sans-serif;font-weight:700;white-space:nowrap;}
+.prow-head .pts.add{color:var(--steel);font-weight:600;}
+.prow-edit{padding:0 14px 14px;}
+.stat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.stat-grid label{display:block;font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.08em;font-size:.74rem;color:var(--steel);margin-bottom:4px;}
+.stat-grid select.input{font-size:1.25rem;padding:10px 8px;}
+.prow-edit .row{display:flex;justify-content:space-between;align-items:center;margin-top:12px;gap:10px;flex-wrap:wrap;}
+.totalbar{position:sticky;bottom:0;background:var(--court);border:1px solid var(--line);border-top:3px solid var(--hoop);padding:12px 14px;margin-top:16px;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;z-index:5;}
+.totalbar b{font-family:'Anton',sans-serif;font-size:1.4rem;color:var(--snow);font-weight:400;}
 @media (max-width:440px){.periods{grid-template-columns:repeat(2,1fr);}}
+@media (min-width:560px){.stat-grid{grid-template-columns:repeat(4,1fr);}}
 </style>
 </head>
 <body>
@@ -74,7 +102,7 @@
   <div class="wrap">
     <span class="eyebrow">Staff Only</span>
     <h1>Scorekeepers</h1>
-    <p>Send the score at the end of each quarter. A VBN approver checks each score before it shows on the site.</p>
+    <p>Send the score at the end of each quarter, or a box score after the game. A VBN approver checks everything before it shows on the site.</p>
   </div>
 </section>
 
@@ -98,7 +126,8 @@
     <div id="app" hidden>
       <div class="who"><span>Signed in as <b id="whoName"></b> (<span id="whoRole"></span><span id="whoScope"></span>)</span><button class="textbtn" id="signOut" type="button">Sign out</button></div>
       <div class="tab-row" id="modeTabs" style="margin-bottom:18px;">
-        <button class="tab active" data-mode="submit" type="button">Send a Score</button>
+        <button class="tab active" data-mode="submit" type="button" id="scoreTab">Send a Score</button>
+        <button class="tab" data-mode="stats" type="button" id="statsTab" hidden>Box Score</button>
         <button class="tab" data-mode="approve" type="button" id="approveTab" hidden>Approvals</button>
       </div>
 
@@ -120,8 +149,9 @@
             <label>Score</label>
             <div class="scores">
               <!-- Away on the left, home on the right, same order as "Away at Home". s1 is always the home (Team1) score. -->
-              <div><label class="muted" for="s2" id="t2Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s2" inputmode="numeric" pattern="[0-9]*" required></div>
-              <div><label class="muted" for="s1" id="t1Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><input class="input" id="s1" inputmode="numeric" pattern="[0-9]*" required></div>
+              <!-- Pick lists, not typing: on a phone they open the scroll wheel. -->
+              <div><label class="muted" for="s2" id="t2Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><select class="input" id="s2" required></select></div>
+              <div><label class="muted" for="s1" id="t1Label" style="font-family:'Barlow Condensed',sans-serif;display:block;margin-bottom:6px;"></label><select class="input" id="s1" required></select></div>
             </div>
           </div>
           <button class="btn wide" type="submit"><span>Review</span></button>
@@ -135,12 +165,55 @@
         </form>
       </div>
 
+      <div id="statsView" hidden>
+        <div class="panel">
+          <h2>1. Pick the game</h2>
+          <p>Games from the last three weeks. Box scores can be sent once the game has started.</p>
+          <div class="pick" id="statGameList" style="margin-top:12px;"></div>
+          <button class="textbtn" id="refreshStatGames" type="button" style="margin-top:12px;">Refresh games</button>
+        </div>
+        <div class="panel" id="teamPanel" hidden>
+          <h2>2. Pick the team</h2>
+          <p id="teamGame"></p>
+          <div class="teams2" id="teamPick"></div>
+        </div>
+        <div class="panel" id="boxPanel" hidden>
+          <h2 id="boxTitle">3. Stat lines</h2>
+          <p id="boxNote"></p>
+          <div class="field"><label>Stats your team keeps</label><div class="chips" id="keptChips"></div></div>
+          <p style="margin-top:14px;font-size:.92rem;">Tap each player who played and set their numbers. Players you skip are left out (did not play).</p>
+          <div class="players" id="playerList"></div>
+          <button class="textbtn" id="addOther" type="button" style="margin-top:12px;">+ Add a player who is not on the roster</button>
+          <div class="field" id="otherForm" hidden>
+            <label for="otherName">Player name</label>
+            <input class="input" id="otherName" autocomplete="off" placeholder="First Last" style="font-size:1.1rem;">
+            <label for="otherNum">Number</label>
+            <select class="input" id="otherNum" style="font-size:1.1rem;"></select>
+            <button class="btn" type="button" id="otherAdd" style="margin-top:6px;"><span>Add Player</span></button>
+          </div>
+          <div class="totalbar"><span>Team total <b id="boxTotal">0</b> pts <span id="boxCheck" class="muted"></span></span>
+            <button class="btn" type="button" id="boxReview"><span>Review</span></button></div>
+          <div class="confirm" id="boxConfirm" hidden>
+            <div id="boxConfirmText"></div>
+            <div class="row">
+              <button class="btn" type="button" id="boxSend"><span>Send Box Score</span></button>
+              <button class="textbtn" type="button" id="boxEdit">Go back and fix</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div id="approveView" hidden>
         <div class="panel">
-          <h2>Waiting for approval</h2>
+          <h2>Scores waiting</h2>
           <p>Check each score against the scorebook or broadcast. Approving a game's newest update clears its older ones. Rejecting a final puts the game back to its last approved score.</p>
           <div id="pendList"></div>
           <button class="textbtn" id="refreshPend" type="button" style="margin-top:12px;">Refresh</button>
+        </div>
+        <div class="panel">
+          <h2>Box scores waiting</h2>
+          <p>Approving one replaces anything already posted for that game and team. Check the team total against the final score.</p>
+          <div id="statPendList"></div>
         </div>
       </div>
     </div>
@@ -162,9 +235,16 @@ var PERIOD_BUTTONS = [
 ];
 var ORDER = ['Q1', 'Q2', 'Half', 'Q3', 'Q4', 'OT', '2OT', '3OT', 'Final', 'Final/OT', 'Final/2OT', 'Final/3OT'];
 
-var S = { code: '', name: '', role: '', games: [], gender: '', game: null, period: '', pendTimer: null };
+var S = { code: '', name: '', role: '', games: [], gender: '', game: null, period: '', pendTimer: null, duties: {} };
 var $ = function (id) { return document.getElementById(id); };
 var esc = VBN.esc;
+
+// Fills a pick list with numbers from..to, plus an optional blank first choice.
+function numberOptions(sel, to, blank) {
+  var html = blank ? '<option value="">' + blank + '</option>' : '';
+  for (var i = 0; i <= to; i++) html += '<option value="' + i + '">' + i + '</option>';
+  sel.innerHTML = html;
+}
 
 function api(action, extra) {
   if (!API_URL) return Promise.reject(new Error('This page is not connected yet. Paste the web app URL into API_URL in scorekeeper.html.'));
@@ -212,8 +292,13 @@ function signIn(code) {
     S.gender = d.gender ? '' : S.gender;
     $('genderTabs').hidden = !!d.gender;
     $('approveTab').hidden = d.role !== 'Approver';
+    // Duties on the Keepers tab decide which tabs show. Approvers do both.
+    S.duties = d.duties || { scores: true, stats: false };
+    $('scoreTab').hidden = !S.duties.scores;
+    $('statsTab').hidden = !S.duties.stats;
+    $('modeTabs').hidden = [S.duties.scores, S.duties.stats, d.role === 'Approver'].filter(Boolean).length < 2;
     $('scoreForm').hidden = true;
-    setMode('submit');   // always start here, even if the last person on this phone was on Approvals
+    setMode(S.duties.scores ? 'submit' : 'stats');   // always start here, even if the last person on this phone was on Approvals
     say('');
     renderGames();
     if (d.role === 'Approver') loadPending(true);
@@ -227,7 +312,9 @@ function signIn(code) {
 function signOut(reason) {
   try { sessionStorage.removeItem('vbnCode'); } catch (e) {}
   clearInterval(S.pendTimer);
-  S = { code: '', name: '', role: '', games: [], gender: S.gender, game: null, period: '', pendTimer: null };
+  S = { code: '', name: '', role: '', games: [], gender: S.gender, game: null, period: '', pendTimer: null, duties: {} };
+  B = { games: [], game: null, team: '', roster: [], lines: {}, off: {}, open: '' };
+  $('teamPanel').hidden = true; $('boxPanel').hidden = true;
   $('app').hidden = true; $('loginPanel').hidden = false; $('code').value = '';
   say(reason || '', !!reason);
 }
@@ -258,8 +345,8 @@ function pickGame(id) {
     ' &middot; posted now: ' + esc(stateText(g).t);
   $('t1Label').textContent = teamName(g.team1, g.gender) + ' (Home)';
   $('t2Label').textContent = teamName(g.team2, g.gender) + ' (Away)';
-  $('s1').value = g.s1 === null ? '' : g.s1;
-  $('s2').value = g.s2 === null ? '' : g.s2;
+  $('s1').value = g.s1 === null ? '' : String(g.s1);
+  $('s2').value = g.s2 === null ? '' : String(g.s2);
   // Suggest the next period after the one already posted.
   var cur = ORDER.indexOf(g.quarter), next = '';
   for (var i = 0; i < PERIOD_BUTTONS.length; i++) {
@@ -287,7 +374,7 @@ function review(e) {
   var g = S.game, s1 = cleanScore($('s1').value), s2 = cleanScore($('s2').value);
   if (!g) return say('Pick a game first.', true);
   if (!S.period) return say('Pick the period that just ended.', true);
-  if (s1 === null || s2 === null) return say('Scores must be whole numbers from 0 to 200.', true);
+  if (s1 === null || s2 === null) return say('Pick both scores.', true);
   if (/^Final/.test(S.period) && s1 === s2) return say('A final score cannot be tied. Check the scores, or pick an overtime period.', true);
   say('');
   var label = PERIOD_BUTTONS.find(function (p) { return p[0] === S.period; })[1];
@@ -326,12 +413,20 @@ function refreshGames() {
 
 /* ---------- approvals ---------- */
 function loadPending(quiet) {
-  return api('pending').then(function (d) { renderPending(d.pending || []); })
-    .catch(function (e) { if (!quiet) say(e.message, true); });
+  return Promise.all([
+    api('pending').then(function (d) { renderPending(d.pending || []); }),
+    api('pendingStats').then(function (d) { renderStatPending(d.pending || []); })
+  ]).catch(function (e) { if (!quiet) say(e.message, true); });
+}
+
+var PEND_COUNT = { scores: 0, stats: 0 };
+function countTab() {
+  var n = PEND_COUNT.scores + PEND_COUNT.stats;
+  $('approveTab').textContent = 'Approvals' + (n ? ' (' + n + ')' : '');
 }
 
 function renderPending(list) {
-  $('approveTab').textContent = 'Approvals' + (list.length ? ' (' + list.length + ')' : '');
+  PEND_COUNT.scores = list.length; countTab();
   $('pendList').innerHTML = list.length ? list.map(function (p) {
     return '<div class="pend" data-id="' + esc(p.id) + '">' +
       '<div class="top"><span><b>' + esc(p.matchup) + '</b></span><span class="muted">' + esc(p.gameId) + '</span></div>' +
@@ -355,10 +450,224 @@ function decidePending(card, act) {
     .catch(function (e) { say(e.message, true); loadPending(true); });
 }
 
+function renderStatPending(list) {
+  PEND_COUNT.stats = list.length; countTab();
+  $('statPendList').innerHTML = list.length ? list.map(function (b) {
+    var check = b.posted === null || b.posted === undefined || b.posted === '' ? '<span class="muted">no final posted yet</span>'
+      : b.points === Number(b.posted) ? '<span style="color:var(--green-light)">matches the posted score (' + esc(b.posted) + ')</span>'
+      : '<span class="warn">posted score is ' + esc(b.posted) + '</span>';
+    var ma = function (l, m, a) { return l[m] === '' ? '&ndash;' : l[m] + (l[a] === '' ? '' : '-' + l[a]); };
+    var v = function (x) { return x === '' ? '&ndash;' : x; };
+    return '<div class="pend" data-id="' + esc(b.id) + '">' +
+      '<div class="top"><span><b>' + esc(teamName(b.team, b.gender)) + '</b> <span class="muted">' + (b.gender === 'G' ? 'Girls' : 'Boys') + '</span></span><span class="muted">' + esc(b.gameId) + '</span></div>' +
+      '<div class="sub">' + esc(b.matchup) + '</div>' +
+      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + b.points + ' pts</span> &middot; ' + check + '</div>' +
+      '<div class="sub">Sent by ' + esc(b.keeper) + (b.type ? ' (' + esc(b.type) + ')' : '') + (b.when ? ' at ' + esc(b.when) : '') + ' &middot; ' + b.lines.length + ' players</div>' +
+      '<div class="tablewrap"><table><thead><tr><th>Player</th><th>PTS</th><th>2s</th><th>3s</th><th>FT</th><th>REB</th><th>AST</th><th>STL</th><th>BLK</th></tr></thead><tbody>' +
+      b.lines.map(function (l) {
+        return '<tr><td>' + (l.number !== '' ? '#' + esc(l.number) + ' ' : '') + esc(l.player) + '</td><td><b>' + linePts(l) + '</b></td><td>' + ma(l, '2PM', '2PA') + '</td><td>' + ma(l, '3PM', '3PA') +
+          '</td><td>' + ma(l, 'FTM', 'FTA') + '</td><td>' + v(l.REB) + '</td><td>' + v(l.AST) + '</td><td>' + v(l.STL) + '</td><td>' + v(l.BLK) + '</td></tr>';
+      }).join('') + '</tbody></table></div>' +
+      '<div class="row"><button class="btn" type="button" data-act="approve"><span>Approve</span></button>' +
+      '<button class="btn reject" type="button" data-act="reject"><span>Reject</span></button></div></div>';
+  }).join('') : '<p class="empty">No box scores waiting.</p>';
+}
+
+function decideStats(card, act) {
+  if (act === 'reject' && !card.dataset.sure) {
+    card.dataset.sure = '1';
+    card.querySelector('[data-act="reject"] span').textContent = 'Tap again to reject';
+    return;
+  }
+  card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+  api('reviewStats', { subId: card.dataset.id, decision: act })
+    .then(function (d) { say(d.message); renderStatPending(d.pending || []); })
+    .catch(function (e) { say(e.message, true); loadPending(true); });
+}
+
+/* ---------- box scores ----------
+   Pick a game, pick the team, then tap each player who played and set their numbers from pick lists.
+   A stat the school does not keep is switched off and sent blank ("not kept"), which the site treats
+   differently from 0. Work in progress is saved on this phone, so a dropped signal or closed tab loses nothing. */
+var STAT_FIELDS = [
+  ['2PM', '2s made', 40], ['2PA', '2s tried', 60], ['3PM', '3s made', 20], ['3PA', '3s tried', 40],
+  ['FTM', 'FTs made', 30], ['FTA', 'FTs tried', 40], ['REB', 'Rebounds', 30], ['AST', 'Assists', 25], ['STL', 'Steals', 15], ['BLK', 'Blocks', 15]
+];
+var OPTIONAL = [['ATT', 'Shot attempts', ['2PA', '3PA']], ['REB', 'Rebounds', ['REB']], ['AST', 'Assists', ['AST']], ['STL', 'Steals', ['STL']], ['BLK', 'Blocks', ['BLK']]];
+var MADE_OF = { '2PA': '2PM', '3PA': '3PM', 'FTA': 'FTM' }, ATT_OF = { '2PM': '2PA', '3PM': '3PA', 'FTM': 'FTA' };
+var B = { games: [], game: null, team: '', roster: [], lines: {}, off: {}, open: '' };
+
+function linePts(l) { return 2 * (+l['2PM'] || 0) + 3 * (+l['3PM'] || 0) + (+l.FTM || 0); }
+function isOff(k) { return OPTIONAL.some(function (o) { return B.off[o[0]] && o[2].indexOf(k) !== -1; }); }
+function draftKey() { return 'vbnBox|' + B.game.id + '|' + B.team; }
+function saveDraft() {
+  try { localStorage.setItem(draftKey(), JSON.stringify({ lines: B.lines, off: B.off, at: Date.now() })); } catch (e) {}
+}
+function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) {} }
+
+function loadStatGames() {
+  $('statGameList').innerHTML = '<p class="muted">Loading games&hellip;</p>';
+  return api('statGames').then(function (d) { B.games = d.games || []; renderStatGames(); })
+    .catch(function (e) { $('statGameList').innerHTML = ''; say(e.message, true); });
+}
+
+function renderStatGames() {
+  var label = { '0': 'Today', '-1': 'Yesterday' }, html = '', last = null;
+  B.games.forEach(function (x) {
+    if (x.offset !== last) { html += '<div class="day-head" style="margin:8px 0 0;">' + (label[x.offset] || x.date) + '</div>'; last = x.offset; }
+    var st = stateText(x), on = B.game && B.game.id === x.id ? ' on' : '';
+    html += '<button type="button" class="pick-game' + on + '" data-id="' + esc(x.id) + '">' +
+      '<span><span class="teams">' + esc(teamName(x.team2, x.gender)) + ' at ' + esc(teamName(x.team1, x.gender)) + '</span><br>' +
+      '<span class="sub">' + (x.gender === 'G' ? 'Girls' : 'Boys') + ' &middot; ' + esc(x.id) + '</span></span>' +
+      '<span class="state ' + st.c + '">' + esc(st.t) + '</span></button>';
+  });
+  $('statGameList').innerHTML = html || '<p class="empty">No ' + (S.scope ? esc(S.scope) + ' ' : '') + 'games in the last three weeks.' +
+    (S.scope ? ' If that looks wrong, contact ' + esc(VBN.CONTACT) + '.' : '') + '</p>';
+}
+
+function pickStatGame(id) {
+  B.game = B.games.find(function (x) { return x.id === id; });
+  if (!B.game) return;
+  renderStatGames();
+  $('boxPanel').hidden = true;
+  var g = B.game;
+  if (g.teams.length === 1) { $('teamPanel').hidden = true; return pickTeam(g.teams[0]); }
+  $('teamGame').innerHTML = '<b style="color:var(--snow)">' + esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '</b>';
+  $('teamPick').innerHTML = [g.team2, g.team1].map(function (t) {
+    return '<button type="button" class="pick-game" data-team="' + esc(t) + '"><span class="teams">' + esc(teamName(t, g.gender)) + '</span></button>';
+  }).join('');
+  $('teamPanel').hidden = false;
+  $('teamPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function pickTeam(team) {
+  var g = B.game;
+  B.team = team; B.lines = {}; B.off = {}; B.open = '';
+  $('boxPanel').hidden = false;
+  $('playerList').innerHTML = '<p class="muted">Loading roster&hellip;</p>';
+  $('boxConfirm').hidden = true;
+  $('boxTitle').textContent = (g.teams.length === 1 ? '2. ' : '3. ') + teamName(team, g.gender) + ' stat lines';
+  api('boxScore', { gameId: g.id, team: team }).then(function (d) {
+    B.roster = d.roster || [];
+    (d.lines || []).forEach(function (l) { B.lines[l.player] = l; });
+    // A stat left blank for every player in the box score being edited was not kept.
+    if (d.lines && d.lines.length) OPTIONAL.forEach(function (o) {
+      B.off[o[0]] = d.lines.every(function (l) { return o[2].every(function (k) { return l[k] === ''; }); });
+    });
+    var note = d.from === 'pending' ? 'A box score for this team is waiting for approval. Sending again replaces it.'
+      : d.from === 'posted' ? 'This team already has a posted box score. Sending again replaces it after approval.' : '';
+    var draft = null;
+    try { draft = JSON.parse(localStorage.getItem(draftKey()) || 'null'); } catch (e) {}
+    if (draft && draft.lines && Object.keys(draft.lines).length) {
+      B.lines = draft.lines; B.off = draft.off || {};
+      note = 'Picked up where you left off on this phone.' + (note ? ' ' + note : '');
+    }
+    $('boxNote').textContent = note || 'Numbers are picked from lists, so there is nothing to type.';
+    if (!B.roster.length) $('boxNote').textContent += ' No roster is posted for this team yet, so add players below.';
+    renderBox();
+    $('boxPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }).catch(function (e) { $('boxPanel').hidden = true; say(e.message, true); });
+}
+
+function renderBox() {
+  $('keptChips').innerHTML = OPTIONAL.map(function (o) {
+    return '<button type="button" class="chip' + (B.off[o[0]] ? '' : ' on') + '" data-k="' + o[0] + '">' + o[1] + '</button>';
+  }).join('');
+  // Roster players first by number, then anyone added by hand.
+  var people = B.roster.map(function (r) { return { player: r.player, number: r.number }; });
+  Object.keys(B.lines).forEach(function (n) {
+    if (!people.some(function (p) { return VBN.norm(p.player) === VBN.norm(n); })) people.push({ player: n, number: B.lines[n].number || '' });
+  });
+  people.sort(function (a, b) { return (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999) || a.player.localeCompare(b.player); });
+  $('playerList').innerHTML = people.map(function (p) {
+    var l = lineFor(p.player), open = B.open === p.player;
+    var html = '<div class="prow' + (l ? ' in' : '') + '" data-p="' + esc(p.player) + '">' +
+      '<button type="button" class="prow-head"><span><span class="num">' + (p.number !== '' ? '#' + esc(p.number) : '') + '</span>' + esc(p.player) + '</span>' +
+      '<span class="pts' + (l ? '' : ' add') + '">' + (l ? linePts(l) + ' pts' : 'Tap to add') + '</span></button>';
+    if (open && l) {
+      html += '<div class="prow-edit"><div class="stat-grid">' + STAT_FIELDS.filter(function (f) { return !isOff(f[0]); }).map(function (f) {
+        var opts = '';
+        for (var i = 0; i <= f[2]; i++) opts += '<option value="' + i + '"' + (Number(l[f[0]]) === i ? ' selected' : '') + '>' + i + '</option>';
+        return '<div><label>' + f[1] + '</label><select class="input" data-k="' + f[0] + '">' + opts + '</select></div>';
+      }).join('') + '</div><div class="row"><button class="textbtn" type="button" data-act="remove" style="color:var(--steel)">Did not play (remove)</button>' +
+        '<button class="btn" type="button" data-act="done"><span>Done</span></button></div></div>';
+    }
+    return html + '</div>';
+  }).join('') || '<p class="empty">No players yet.</p>';
+  updateTotal();
+}
+
+function lineFor(name) {
+  var k = Object.keys(B.lines).find(function (n) { return VBN.norm(n) === VBN.norm(name); });
+  return k ? B.lines[k] : null;
+}
+
+function newLine(player, number) {
+  var l = { player: player, number: number || '' };
+  STAT_FIELDS.forEach(function (f) { l[f[0]] = isOff(f[0]) ? '' : 0; });
+  return l;
+}
+
+function updateTotal() {
+  var names = Object.keys(B.lines), pts = names.reduce(function (t, n) { return t + linePts(B.lines[n]); }, 0);
+  $('boxTotal').textContent = pts;
+  var g = B.game, posted = g ? (VBN.norm(B.team) === VBN.norm(g.team1) ? g.s1 : g.s2) : null;
+  $('boxCheck').innerHTML = !names.length ? '' : posted === null ? '&middot; ' + names.length + ' players'
+    : pts === posted ? '&middot; <span style="color:var(--green-light)">matches the score (' + posted + ')</span>'
+    : '&middot; <span class="warn">score shows ' + posted + '</span>';
+}
+
+function setStat(player, k, v) {
+  var l = lineFor(player); if (!l) return;
+  l[k] = v;
+  // Made can never be more than tried: raising made raises tried, lowering tried lowers made.
+  if (ATT_OF[k] && !isOff(ATT_OF[k]) && l[ATT_OF[k]] < v) l[ATT_OF[k]] = v;
+  if (MADE_OF[k] && l[MADE_OF[k]] > v) l[MADE_OF[k]] = v;
+  saveDraft(); renderBox();
+}
+
+function toggleKept(key) {
+  B.off[key] = !B.off[key];
+  var cols = OPTIONAL.find(function (o) { return o[0] === key; })[2];
+  Object.keys(B.lines).forEach(function (n) {
+    var l = B.lines[n];
+    cols.forEach(function (c) { l[c] = B.off[key] ? '' : (MADE_OF[c] ? +l[MADE_OF[c]] || 0 : 0); });
+  });
+  saveDraft(); renderBox();
+}
+
+function boxReview() {
+  var names = Object.keys(B.lines);
+  if (!names.length) return say('Tap at least one player who played.', true);
+  say('');
+  var g = B.game, rows = names.map(function (n) { return B.lines[n]; }).sort(function (a, b) { return linePts(b) - linePts(a); });
+  $('boxConfirmText').innerHTML = '<b>' + esc(teamName(B.team, g.gender)) + '</b>, ' + esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '<br>' +
+    rows.map(function (l) { return esc(l.player) + ' <b>' + linePts(l) + '</b>'; }).join(', ') + '<br>' +
+    'Team total <b>' + $('boxTotal').textContent + '</b><br><span class="muted">' +
+    (S.role === 'Approver' ? 'This posts right away and replaces any box score already posted for this team.' : 'An approver checks it before it shows on the site.') + '</span>';
+  $('boxConfirm').hidden = false;
+  $('boxConfirm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function boxSend() {
+  var btn = $('boxSend'); btn.disabled = true;
+  var lines = Object.keys(B.lines).map(function (n) { return B.lines[n]; });
+  api('submitStats', { gameId: B.game.id, team: B.team, lines: lines }).then(function (d) {
+    clearDraft();
+    say(d.message);
+    $('boxPanel').hidden = true; $('teamPanel').hidden = true; B.game = null; renderStatGames();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (S.role === 'Approver') loadPending(true);
+  }).catch(function (e) { say(e.message, true); $('boxConfirm').hidden = true; })
+    .then(function () { btn.disabled = false; });
+}
+
 function setMode(mode) {
   document.querySelectorAll('#modeTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.mode === mode); });
   $('submitView').hidden = mode !== 'submit';
+  $('statsView').hidden = mode !== 'stats';
   $('approveView').hidden = mode !== 'approve';
+  if (mode === 'stats' && !B.games.length) loadStatGames();
   clearInterval(S.pendTimer);
   if (mode === 'approve') { loadPending(); S.pendTimer = setInterval(function () { loadPending(true); }, 60000); }
 }
@@ -384,13 +693,51 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = e.target.closest('.period'); if (!b) return;
     S.period = b.dataset.p; renderPeriods(); $('confirmBox').hidden = true;
   });
-  // Score boxes take digits only: letters, spaces, and symbols are removed as they are typed or pasted.
+  // Score pick lists: 0 to 200, blank until picked so a score is never sent by accident.
   ['s1', 's2'].forEach(function (id) {
-    $(id).addEventListener('input', function () {
-      var clean = this.value.replace(/\D/g, '').slice(0, 3);
-      if (clean !== this.value) this.value = clean;
-      $('confirmBox').hidden = true;
-    });
+    numberOptions($(id), 200, '&ndash;');
+    $(id).addEventListener('change', function () { $('confirmBox').hidden = true; });
+  });
+  numberOptions($('otherNum'), 99, 'No number');
+  $('refreshStatGames').addEventListener('click', loadStatGames);
+  $('statGameList').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickStatGame(b.dataset.id); });
+  $('teamPick').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickTeam(b.dataset.team); });
+  $('keptChips').addEventListener('click', function (e) { var b = e.target.closest('.chip'); if (b) toggleKept(b.dataset.k); });
+  $('playerList').addEventListener('click', function (e) {
+    var row = e.target.closest('.prow'); if (!row) return;
+    var name = row.dataset.p, act = e.target.closest('[data-act]');
+    if (act && act.dataset.act === 'remove') { var k = Object.keys(B.lines).find(function (n) { return VBN.norm(n) === VBN.norm(name); }); delete B.lines[k]; B.open = ''; saveDraft(); return renderBox(); }
+    if (act && act.dataset.act === 'done') { B.open = ''; return renderBox(); }
+    if (!e.target.closest('.prow-head')) return;
+    if (!lineFor(name)) {
+      var r = B.roster.find(function (x) { return x.player === name; });
+      B.lines[name] = newLine(name, r ? r.number : ''); saveDraft();
+    }
+    B.open = B.open === name ? '' : name;
+    $('boxConfirm').hidden = true;
+    renderBox();
+  });
+  $('playerList').addEventListener('change', function (e) {
+    var sel = e.target.closest('select[data-k]'); if (!sel) return;
+    setStat(sel.closest('.prow').dataset.p, sel.dataset.k, Number(sel.value));
+    $('boxConfirm').hidden = true;
+  });
+  $('addOther').addEventListener('click', function () { $('otherForm').hidden = !$('otherForm').hidden; if (!$('otherForm').hidden) $('otherName').focus(); });
+  $('otherAdd').addEventListener('click', function () {
+    var name = $('otherName').value.trim().replace(/\s+/g, ' ');
+    if (!name) return say('Type the player\'s name.', true);
+    if (lineFor(name) || B.roster.some(function (r) { return VBN.norm(r.player) === VBN.norm(name); })) return say(name + ' is already in the list. Tap their name instead.', true);
+    say('');
+    name = VBN.fixCase(name);
+    B.lines[name] = newLine(name, $('otherNum').value);
+    B.open = name; $('otherName').value = ''; $('otherNum').value = ''; $('otherForm').hidden = true;
+    saveDraft(); renderBox();
+  });
+  $('boxReview').addEventListener('click', boxReview);
+  $('boxSend').addEventListener('click', boxSend);
+  $('boxEdit').addEventListener('click', function () { $('boxConfirm').hidden = true; });
+  $('statPendList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (b) decideStats(b.closest('.pend'), b.dataset.act);
   });
   $('scoreForm').addEventListener('submit', review);
   $('sendBtn').addEventListener('click', send);
