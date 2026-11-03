@@ -40,6 +40,21 @@
   </div>
 </section>
 
+<!-- Team sponsors: filled in by renderSponsors() from the SponsorDirectory tab (rows tagged
+     TeamPage-<school>, see sponsorsFor in assets/vbn.js). Open spots show even with no sponsors. -->
+<section class="team-sponsors" id="teamSponsors" hidden>
+  <div class="wrap">
+    <div class="team-sponsors-head">
+      <span class="eyebrow" id="teamSponsorsLabel">Proud Supporters</span>
+      <a class="link" id="teamSponsorsCta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Team%20Page%20Sponsorship">Sponsor This Team &rarr;</a>
+    </div>
+    <div class="sponsor-row" id="teamSponsorRow"></div>
+  </div>
+</section>
+
+<!-- On wide screens the team sections sit next to a sponsor rail down the right side
+     (the same tiles as the strip above, which then hides). See .team-layout in assets/vbn.css. -->
+<div class="team-layout">
 <section class="section">
   <div class="wrap">
     <div class="filters">
@@ -48,16 +63,29 @@
       </div>
       <a href="teams.html" class="link">All Teams &rarr;</a>
     </div>
+    <div class="print-row" id="printRow" hidden>
+      <a class="btn-ghost" id="printLink" href="team-download.html">&#8681; Schedule &amp; Roster (PDF)</a>
+      <span class="print-note">Your business could be on every printable roster &amp; schedule. <a href="mailto:csimpson@nsnsports.net?subject=VBN%20Printable%20Roster%20%26%20Schedule%20Sponsorship">Ask about it &rarr;</a></span>
+    </div>
     <div id="teamOut"></div>
   </div>
 </section>
+
+<aside class="sponsor-rail" id="sponsorRail" hidden>
+  <div class="sponsor-rail-inner">
+    <span class="eyebrow" id="sponsorRailLabel">Proud Supporters</span>
+    <div class="sponsor-rail-tiles" id="sponsorRailTiles"></div>
+    <a class="link" id="sponsorRailCta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Team%20Page%20Sponsorship">Sponsor This Team &rarr;</a>
+  </div>
+</aside>
+</div>
 </main>
 
 <footer id="site-footer"></footer>
 
 <script>
 var STATE = { team: '', g: 'B' };
-var TEAM_ROWS = [], SCHEDULE = [], ROSTER = [], STATS = [];
+var TEAM_ROWS = [], SCHEDULE = [], ROSTER = [], STATS = [], SPONSORS = [];
 var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 function hasProgram(team, g) { var t = VBN.team(team, g); return !!t && !/no team/i.test(t.Status || ''); }
@@ -188,6 +216,34 @@ function statsHTML(team, g) {
     }).join('') + '</tbody></table></div>';
 }
 
+/* Sponsor tiles for this school, plus two open spots that are always for sale: this team's page,
+   and the printable roster & schedule (team-download.html, which shows the TeamPDF- rows). */
+var PRINT_SPONSOR_LINK = 'mailto:' + VBN.CONTACT + '?subject=' + encodeURIComponent('VBN Printable Roster & Schedule Sponsorship');
+function renderSponsors(t, g) {
+  var strip = document.getElementById('teamSponsors'), rail = document.getElementById('sponsorRail');
+  if (!t) { strip.hidden = true; rail.hidden = true; return; }
+  var name = VBN.displayName(t.Team, g), sport = (g === 'G' ? 'Girls' : 'Boys') + ' Basketball';
+  var sponsors = VBN.sponsorsFor(SPONSORS, 'TeamPage', t.Team, g);
+  var ask = 'mailto:' + VBN.CONTACT + '?subject=' + encodeURIComponent('VBN Team Page Sponsorship: ' + name + ' ' + sport);
+  var tiles = sponsors.map(function (s) {
+    var inner = s.LogoPath ? '<img src="' + VBN.esc(s.LogoPath) + '" alt="' + VBN.esc(s.Name) + '" loading="lazy">' : '<span class="sponsor-name">' + VBN.esc(s.Name) + '</span>';
+    return s.URL
+      ? '<a class="sponsor-tile" href="' + VBN.esc(s.URL) + '" target="_blank" rel="noopener sponsored" title="' + VBN.esc(s.Name) + '">' + inner + '</a>'
+      : '<div class="sponsor-tile" title="' + VBN.esc(s.Name) + '">' + inner + '</div>';
+  });
+  tiles.push('<a class="sponsor-tile open-spot" href="' + ask + '">Your business here<br>&rarr; Sponsor ' + VBN.esc(name) + '</a>');
+  tiles.push('<a class="sponsor-tile open-spot" href="' + PRINT_SPONSOR_LINK + '">Your logo on every printable roster &amp; schedule</a>');
+  var label = (sponsors.length ? 'Proud Supporters of ' : 'Support ') + name + ' ' + sport;
+  document.getElementById('teamSponsorsLabel').textContent = label;
+  document.getElementById('sponsorRailLabel').textContent = label;
+  document.getElementById('teamSponsorsCta').href = ask;
+  document.getElementById('sponsorRailCta').href = ask;
+  document.getElementById('teamSponsorRow').innerHTML = tiles.join('');
+  document.getElementById('sponsorRailTiles').innerHTML = tiles.join('');
+  // The CSS shows the rail on wide screens and the strip everywhere else, so only one is ever visible.
+  strip.hidden = false; rail.hidden = false; strip.classList.add('rail-active');
+}
+
 function render() {
   var hero = document.getElementById('teamHero'), out = document.getElementById('teamOut');
   document.querySelectorAll('#genderTabs .tab').forEach(function (b) {
@@ -199,12 +255,13 @@ function render() {
   if (!STATE.team || (!VBN.team(STATE.team, 'B') && !VBN.team(STATE.team, 'G'))) {
     paintBanner(null);
     hero.innerHTML = '<div><h1>Team not found</h1><p class="muted" style="margin-top:10px;">Pick a school from the <a class="link" href="teams.html">team list</a>.</p></div>';
-    out.innerHTML = ''; return;
+    out.innerHTML = ''; renderSponsors(null); document.getElementById('printRow').hidden = true; return;
   }
   if (!hasProgram(STATE.team, STATE.g)) {
     paintBanner(VBN.team(STATE.team, STATE.g === 'B' ? 'G' : 'B'));
     hero.innerHTML = '<div><h1>' + VBN.esc(VBN.displayName(STATE.team, STATE.g === 'B' ? 'G' : 'B')) + '</h1></div>';
-    out.innerHTML = '<p class="empty">No ' + (STATE.g === 'G' ? 'girls' : 'boys') + ' varsity team this season.</p>'; return;
+    out.innerHTML = '<p class="empty">No ' + (STATE.g === 'G' ? 'girls' : 'boys') + ' varsity team this season.</p>';
+    renderSponsors(null); document.getElementById('printRow').hidden = true; return;
   }
   document.title = VBN.displayName(t.Team, STATE.g) + ' ' + (STATE.g === 'G' ? 'Girls' : 'Boys') + ' | Vermont Basketball Network';
   var S = VBN.standings(SCHEDULE), s = S[VBN.key(t.Team, STATE.g)] || { w: 0, l: 0, lw: 0, ll: 0, avg: null, streak: '' };
@@ -212,6 +269,9 @@ function render() {
   if (r) r.s = s;
   paintBanner(t);   // girls and boys can have different colors (St. Albans Comets vs. Bobwhites)
   hero.innerHTML = heroHTML(t, s, STATE.g);
+  renderSponsors(t, STATE.g);
+  document.getElementById('printLink').href = 'team-download.html?team=' + encodeURIComponent(t.Team) + '&g=' + STATE.g;
+  document.getElementById('printRow').hidden = false;
   out.innerHTML = (VBN.hasLeague(t) ? rankHTML(t, r) : '') + scheduleHTML(t.Team, STATE.g) + rosterHTML(t.Team, STATE.g) + statsHTML(t.Team, STATE.g);
   history.replaceState(null, '', location.pathname + '?team=' + encodeURIComponent(t.Team) + '&g=' + STATE.g);
 }
@@ -224,8 +284,9 @@ document.addEventListener('DOMContentLoaded', function () {
   document.getElementById('genderTabs').addEventListener('click', function (e) {
     var b = e.target.closest('.tab'); if (b && !b.disabled) { STATE.g = b.dataset.g; render(); }
   });
-  // Teams is required. Schedule, Roster, and Stats are optional: each missing one only hides its section.
-  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('roster'), VBN.loadSource('stats')]).then(function (res) {
+  // Teams is required. Schedule, Roster, Stats, and Sponsors are optional: each missing one only hides its section
+  // (with no Sponsors tab the open sponsor spots still show).
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('roster'), VBN.loadSource('stats'), VBN.loadSource('sponsors')]).then(function (res) {
     if (res[0].status === 'rejected') {
       document.getElementById('teamHero').innerHTML = '<p class="muted">This team could not load right now. Please try again in a minute.</p>'; return;
     }
@@ -233,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function () {
     SCHEDULE = res[1].status === 'fulfilled' ? res[1].value : [];
     ROSTER = res[2].status === 'fulfilled' ? res[2].value : [];
     STATS = res[3].status === 'fulfilled' ? res[3].value : [];
+    SPONSORS = res[4].status === 'fulfilled' ? res[4].value : [];
     // Opened without a gender, or with one this school does not field: switch to the one it has.
     if (!hasProgram(STATE.team, STATE.g) && hasProgram(STATE.team, STATE.g === 'B' ? 'G' : 'B')) STATE.g = STATE.g === 'B' ? 'G' : 'B';
     render();

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<!-- VBN | Vermont Basketball Network | vbn.nsnsports.net | NOT a VFN file | file: team-download.html -->
+<html lang="en">
+<head>
+  <!-- Google tag (gtag.js): VBN property. Never use the VFN ID here. -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-T9F0MPQ8Z0"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-T9F0MPQ8Z0');
+  </script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download Schedule &amp; Roster | Vermont Basketball Network</title>
+<meta name="description" content="Download a printable Vermont high school basketball team schedule and roster.">
+<!-- A quiet, no-menu page reached only from the button on a team page. Kept apart from team.html
+     so the PDF tools only load for people who want the PDF. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="assets/vbn.css">
+<script src="assets/vbn.js"></script>
+<style>
+body{align-items:center;justify-content:center;padding:24px;}
+.card{background:var(--court);border:1px solid var(--line);border-top:4px solid var(--team-main, var(--hoop));padding:36px 32px;max-width:440px;width:100%;text-align:center;}
+.card .crest-lg{width:64px;height:64px;object-fit:contain;background:#fff;border-radius:8px;padding:6px;margin:16px auto 0;}
+.card h1{font-size:1.5rem;margin:14px 0 4px;}
+.card .sub{color:var(--steel);font-family:'Barlow Condensed',sans-serif;font-size:.85rem;text-transform:uppercase;letter-spacing:.05em;margin-bottom:22px;}
+.card .btn{width:100%;}
+.card .btn:disabled{opacity:.6;cursor:default;}
+.card .status{color:var(--steel);font-size:.9rem;margin-top:16px;line-height:1.5;}
+.card .back{display:block;margin-top:18px;font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:.85rem;color:var(--steel);}
+.card .back:hover{color:var(--snow);}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <span class="eyebrow" style="color:var(--yellow);">Vermont Basketball Network</span>
+  <img id="teamCrest" class="crest-lg" src="" alt="" style="display:none;">
+  <h1 id="teamName">Loading&hellip;</h1>
+  <div class="sub" id="teamSub"></div>
+  <button class="btn" id="downloadBtn" disabled><span>&#8681; Download PDF</span></button>
+  <p class="status" id="statusMsg">Loading schedule and roster&hellip;</p>
+  <a class="back" id="backLink" href="teams.html">&larr; Back to Teams</a>
+</div>
+
+<script>
+var PDF = null, SPONSORS = [];
+var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function imgToDataURL(url) {
+  return fetch(url).then(function (r) { return r.ok ? r.blob() : null; }).then(function (blob) {
+    if (!blob) return null;
+    return new Promise(function (resolve) {
+      var reader = new FileReader();
+      reader.onloadend = function () { resolve(reader.result); };
+      reader.onerror = function () { resolve(null); };
+      reader.readAsDataURL(blob);
+    });
+  }).catch(function () { return null; });
+}
+function imageSize(dataUrl) {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    img.onload = function () { resolve({ w: img.naturalWidth, h: img.naturalHeight }); };
+    img.onerror = reject;
+    img.src = dataUrl;
+  });
+}
+function rgb(hex) {
+  var h = String(hex || '').trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map(function (c) { return c + c; }).join('');
+  var n = parseInt(h, 16);
+  return /^[0-9a-f]{6}$/i.test(h) ? [n >> 16 & 255, n >> 8 & 255, n & 255] : [242, 113, 28];   // site orange if missing
+}
+
+function scheduleBody(team, g, schedule) {
+  return schedule.filter(function (x) {
+    return String(x.Gender).toUpperCase() === g && (VBN.norm(x.Team1) === VBN.norm(team) || VBN.norm(x.Team2) === VBN.norm(team));
+  }).sort(function (a, b) { return VBN.sortTime(a) - VBN.sortTime(b); }).map(function (x) {
+    var home = VBN.norm(x.Team1) === VBN.norm(team), opp = home ? x.Team2 : x.Team1;
+    var neutral = String(x.Neutral || '').trim().toLowerCase() === 'yes';
+    var d = VBN.parseDate(x.Date);
+    var mine = VBN.num(home ? x.Team1Score : x.Team2Score), theirs = VBN.num(home ? x.Team2Score : x.Team1Score);
+    var result = VBN.isFinal(x) && mine !== null && theirs !== null
+      ? (mine > theirs ? 'W ' : 'L ') + mine + '-' + theirs + (/ot/i.test(x.Quarter) ? ' (OT)' : '')
+      : VBN.isOff(x) ? x.Quarter : (VBN.timeLabel(x.Time) || 'TBA');
+    var game = (String(x.League || '').trim().toLowerCase() === 'yes' ? 'League' : 'Non-League') + (x.Event ? ', ' + x.Event : '');
+    return [d ? DAYS[d.getDay()] + ' ' + MONTHS[d.getMonth()] + ' ' + d.getDate() : '', (neutral || home ? 'vs ' : '@ ') + VBN.displayName(opp, g), result, game];
+  });
+}
+
+function rosterBody(team, g, roster) {
+  return roster.filter(function (r) { return String(r.Gender).toUpperCase() === g && VBN.norm(r.Team) === VBN.norm(team) && r.Player; })
+    .sort(function (a, b) { return (parseInt(a.Number, 10) || 999) - (parseInt(b.Number, 10) || 999); })
+    .map(function (r) { return [r.Number || '', r.Player, VBN.gradeLabel(r.GradYear), r.Position || '', r.Height || '']; });
+}
+
+function makePDF() {
+  if (!PDF) return;
+  if (!window.jspdf) { alert('The PDF tool is still loading. Please wait a couple seconds and try again.'); return; }
+  var btn = document.getElementById('downloadBtn'), before = btn.innerHTML;
+  btn.disabled = true; btn.innerHTML = '<span>Making your PDF&hellip;</span>';
+  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'letter' });
+  var W = doc.internal.pageSize.getWidth(), M = 40, c = rgb(PDF.t.PrimaryColor);
+  var head = { fillColor: c, textColor: 255, fontStyle: 'bold', fontSize: 8 };
+  var name = VBN.displayName(PDF.t.Team, PDF.g), sport = (PDF.g === 'G' ? 'Girls' : 'Boys') + ' Basketball';
+  var season = VBN.SEASON_YEAR + '-' + String(VBN.SEASON_YEAR + 1).slice(2);
+  var sponsors = VBN.sponsorsFor(SPONSORS, 'TeamPDF', PDF.t.Team, PDF.g);
+
+  doc.setFillColor(c[0], c[1], c[2]);
+  doc.rect(0, 0, W, 70, 'F');
+
+  Promise.all([
+    PDF.t.LogoPath ? imgToDataURL(PDF.t.LogoPath) : null,
+    sponsors.length && sponsors[0].LogoPath ? imgToDataURL(sponsors[0].LogoPath) : null,
+    imgToDataURL('assets/nsn-logo.png')
+  ]).then(function (imgs) {
+    var crest = imgs[0], sponsorLogo = imgs[1], nsn = imgs[2];
+    if (crest) { try { doc.addImage(crest, undefined, M, 12, 46, 46); } catch (e) { crest = null; } }
+    var x = crest ? M + 58 : M;
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(20);
+    doc.text(name.toUpperCase(), x, 34);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10);
+    doc.text(sport + (PDF.t.League ? '  |  ' + PDF.t.League + ' League' : '') + (PDF.t.VPADiv ? '  |  Division ' + PDF.t.VPADiv : ''), x, 50);
+
+    // Sponsor slot on the right of the header band: the first TeamPDF- logo, or the sponsor names as text.
+    var sized = sponsorLogo ? imageSize(sponsorLogo).catch(function () { return null; }) : Promise.resolve(null);
+    return sized.then(function (dims) {
+      if (sponsors.length) {
+        var names = sponsors.map(function (s) { return s.Name; }).join(' & ');
+        if (dims) {
+          var k = Math.min(100 / dims.w, 46 / dims.h, 1);
+          doc.setFontSize(7);
+          doc.text('PRESENTED BY', W - M, 14, { align: 'right' });
+          try { doc.addImage(sponsorLogo, undefined, W - M - dims.w * k, 18, dims.w * k, dims.h * k); }
+          catch (e) { doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(names, W - M, 40, { align: 'right' }); }
+        } else {
+          doc.setFontSize(8); doc.text('Presented by', W - M, 24, { align: 'right' });
+          doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.text(names, W - M, 40, { align: 'right' });
+        }
+      }
+
+      doc.setTextColor(10, 10, 11);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+      doc.text(season + ' Schedule', M, 92);
+      doc.autoTable({
+        startY: 102, margin: { left: M, right: M }, theme: 'striped', headStyles: head, styles: { fontSize: 8, cellPadding: 4 },
+        head: [['Date', 'Opponent', 'Result / Time', 'Game']],
+        body: PDF.games.length ? PDF.games : [['', 'No games on the schedule yet', '', '']]
+      });
+      var y = doc.lastAutoTable.finalY + 22;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(13);
+      doc.text('Roster', M, y);
+      doc.autoTable({
+        startY: y + 10, margin: { left: M, right: M }, theme: 'striped', headStyles: head, styles: { fontSize: 8, cellPadding: 4 },
+        head: [['#', 'Player', 'Grade', 'Position', 'Height']],
+        body: PDF.roster.length ? PDF.roster : [['', 'Roster not entered yet', '', '', '']]
+      });
+      return nsn ? imageSize(nsn).catch(function () { return null; }) : null;
+    }).then(function (nsnDims) {
+      var pages = doc.internal.getNumberOfPages(), text = 'Vermont Basketball Network, a Northeast Sports Network production  |  vbn.nsnsports.net';
+      for (var i = 1; i <= pages; i++) {
+        doc.setPage(i);
+        var H = doc.internal.pageSize.getHeight();
+        doc.setDrawColor(200, 200, 200); doc.line(M, H - 38, W - M, H - 38);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+        doc.text(text, M, H - 24);
+        if (nsnDims) { try { doc.addImage(nsn, undefined, M + doc.getTextWidth(text) + 8, H - 33, nsnDims.w * 11 / nsnDims.h, 11); } catch (e) {} }
+        doc.text('Made ' + new Date().toLocaleDateString(), W - M, H - 24, { align: 'right' });
+      }
+      doc.save((name + '-' + (PDF.g === 'G' ? 'Girls' : 'Boys')).replace(/[^a-z0-9]+/gi, '-') + '-Schedule-Roster.pdf');
+    });
+  }).catch(function (e) {
+    console.error('PDF failed:', e);
+    alert('Sorry, the PDF could not be made. Please try again.');
+  }).then(function () { btn.disabled = false; btn.innerHTML = before; });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+  var p = new URLSearchParams(location.search), team = p.get('team') || '', g = p.get('g') === 'G' ? 'G' : 'B';
+  var status = document.getElementById('statusMsg');
+  document.getElementById('downloadBtn').addEventListener('click', makePDF);
+  if (!team) {
+    document.getElementById('teamName').textContent = 'No Team Picked';
+    status.textContent = 'Go back to the team page you came from and use the download button there.'; return;
+  }
+  document.getElementById('backLink').href = 'team.html?team=' + encodeURIComponent(team) + '&g=' + g;
+  document.getElementById('backLink').innerHTML = '&larr; Back to Team Page';
+  // Teams is required. With no Schedule or Roster the PDF still prints with a note; no Sponsors tab just means no sponsor logo.
+  Promise.allSettled([VBN.loadTeams(), VBN.loadSource('schedule'), VBN.loadSource('roster'), VBN.loadSource('sponsors')]).then(function (res) {
+    var t = res[0].status === 'fulfilled' ? VBN.team(team, g) : null;
+    if (!t) {
+      document.getElementById('teamName').textContent = res[0].status === 'fulfilled' ? 'Team Not Found' : team;
+      status.textContent = res[0].status === 'fulfilled' ? 'That school does not match our records.' : 'The schedule and roster could not load. Try again in a minute.'; return;
+    }
+    SPONSORS = res[3].status === 'fulfilled' ? res[3].value : [];
+    PDF = { t: t, g: g,
+      games: scheduleBody(t.Team, g, res[1].status === 'fulfilled' ? res[1].value : []),
+      roster: rosterBody(t.Team, g, res[2].status === 'fulfilled' ? res[2].value : []) };
+    var name = VBN.displayName(t.Team, g);
+    document.title = 'Download: ' + name + ' ' + (g === 'G' ? 'Girls' : 'Boys') + ' | Vermont Basketball Network';
+    document.getElementById('teamName').textContent = name;
+    document.getElementById('teamSub').textContent = (g === 'G' ? 'Girls' : 'Boys') + ' Basketball' + (t.League ? ' | ' + t.League : '');
+    if (/^#[0-9a-f]{6}$/i.test(String(t.PrimaryColor || '').trim())) document.documentElement.style.setProperty('--team-main', t.PrimaryColor.trim());
+    if (t.LogoPath) { var crest = document.getElementById('teamCrest'); crest.src = t.LogoPath; crest.alt = name; crest.style.display = ''; }
+    status.textContent = PDF.games.length + ' game' + (PDF.games.length === 1 ? '' : 's') + ' on the schedule, ' + PDF.roster.length + ' player' + (PDF.roster.length === 1 ? '' : 's') + ' on the roster.';
+    document.getElementById('downloadBtn').disabled = false;
+  });
+});
+</script>
+
+<!-- Loaded only here, not on team.html, since this is the one page that needs them. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+
+</body>
+</html>
