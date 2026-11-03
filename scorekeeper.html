@@ -13,7 +13,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>Scorekeepers | Vermont Basketball Network</title>
+<title>Contributors | Vermont Basketball Network</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -101,8 +101,8 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
 <main>
 <section class="page-hero">
   <div class="wrap">
-    <span class="eyebrow">Staff Only</span>
-    <h1>Scorekeepers</h1>
+    <span class="eyebrow">Passcode Required</span>
+    <h1>Contributors</h1>
     <p>Send the score at the end of each quarter, or a box score after the game. A VBN approver checks everything before it shows on the site.</p>
   </div>
 </section>
@@ -120,7 +120,7 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
         <input class="input code" id="code" name="code" placeholder="XXXX-XXXX" autocapitalize="characters" spellcheck="false" required>
       </div>
       <button class="btn wide" type="submit" id="loginBtn"><span>Sign In</span></button>
-      <p style="margin-top:18px;font-size:.92rem;">Want to keep score for your school's games? Email <b style="color:var(--snow)" id="contact2"></b> with your name, school, and boys or girls, and we will send you a passcode.</p>
+      <p style="margin-top:18px;font-size:.92rem;">Want to send scores or box scores for your school? Coaches, stat keepers, and fans are all welcome. Email <b style="color:var(--snow)" id="contact2"></b> with your name, school, boys or girls, and whether you are a coach or community member, and we will send you a passcode.</p>
     </form>
 
     <!-- Step 2: signed in -->
@@ -285,7 +285,7 @@ function signIn(code) {
     S.name = d.name; S.role = d.role; S.games = d.games || [];
     try { sessionStorage.setItem('vbnCode', code); } catch (e) {}
     $('loginPanel').hidden = true; $('app').hidden = false;
-    $('whoName').textContent = d.name; $('whoRole').textContent = d.role;
+    $('whoName').textContent = d.name; $('whoRole').textContent = d.role === 'Keeper' ? 'Contributor' : d.role;   // the Hub's Keepers tab still says Keeper
     S.autoPost = d.autoPostLive === true;   // follows autoPostLive in the script
     S.scope = d.scope && d.scope !== 'All games' ? d.scope : '';
     $('whoScope').textContent = S.scope ? ' · ' + S.scope : '';
