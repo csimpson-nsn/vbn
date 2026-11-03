@@ -18,6 +18,23 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
 <link rel="stylesheet" href="assets/vbn.css">
+<style>
+/* homepage only */
+.more-games{display:inline-block;margin-top:12px;}
+.feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+@media (max-width:900px){.feature-grid{grid-template-columns:1fr;}}
+.feature{background:var(--court);border:1px solid var(--line);padding:22px;display:flex;flex-direction:column;gap:10px;min-height:220px;}
+.feature .eyebrow{color:var(--yellow);}
+.feature h3{font-size:1.5rem;line-height:1.05;}
+.feature p{color:var(--steel);line-height:1.5;font-size:.95rem;}
+.feature .slot{flex:1;border:1px dashed var(--steel);display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;color:var(--steel);font-family:'Anton',sans-serif;letter-spacing:.02em;min-height:110px;}
+.podcast{display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:center;background:var(--court);border:1px solid var(--line);padding:24px;}
+@media (max-width:640px){.podcast{grid-template-columns:1fr;}}
+.podcast .cover{aspect-ratio:1;border:1px dashed var(--steel);display:flex;align-items:center;justify-content:center;text-align:center;color:var(--steel);font-family:'Anton',sans-serif;padding:12px;}
+.podcast h3{font-size:1.8rem;line-height:1.05;}
+.podcast p{color:var(--steel);line-height:1.55;margin-top:8px;max-width:620px;}
+.podcast .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+</style>
 <script src="assets/vbn.js"></script>
 </head>
 <body>
@@ -47,17 +64,56 @@
 <section class="section">
   <div class="wrap">
     <div class="section-head">
-      <div><span class="eyebrow" id="dayLabel">Loading&hellip;</span><h2 id="dayTitle">Game Day</h2></div>
-      <a href="schedule.html" class="link">Full Schedule &rarr;</a>
+      <div><span class="eyebrow" id="dayLabel">Loading&hellip;</span><h2 id="dayTitle">Games Ahead</h2></div>
+      <a href="schedule.html" class="link" id="fullLink">Full Schedule &rarr;</a>
     </div>
     <div class="filters">
       <div class="tab-row" id="genderTabs" role="group" aria-label="Boys or girls">
         <button class="tab active" data-g="">Both</button><button class="tab" data-g="B">Boys</button><button class="tab" data-g="G">Girls</button>
       </div>
     </div>
-    <div class="games-grid" id="dayGrid"></div>
+    <div id="dayGrid"></div>
     <p class="empty" id="dayEmpty" style="display:none;"></p>
+    <a href="schedule.html" class="btn" id="fullBtn" style="margin-top:6px;"><span>See the Full Schedule</span></a>
     <div class="note" style="margin:30px 0 0;"><b>Keep score for your school.</b> Live scores come from courtside scorekeepers after every quarter. Want to help? Email <b>csimpson@nsnsports.net</b> for a passcode. Already have one? <a class="link" href="scorekeeper.html">Scorekeeper Sign In &rarr;</a></div>
+  </div>
+</section>
+
+<!-- RECOGNITION: placeholders until the first honorees are picked. Swap each dashed box for a photo
+     and a line or two (name, school, the numbers that earned it). Each card can carry its own sponsor. -->
+<section class="section" style="padding-top:10px;">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="eyebrow">Weekly Honors</span><h2>Players &amp; Teams of the Week</h2></div>
+      <a href="mailto:csimpson@nsnsports.net?subject=VBN%20Player%20of%20the%20Week%20Nomination" class="link">Nominate Someone &rarr;</a>
+    </div>
+    <div class="feature-grid">
+      <div class="feature"><span class="eyebrow">Boys</span><h3>Player of the Week</h3><div class="slot">Coming Soon</div><p>Presented by <a class="link" href="mailto:csimpson@nsnsports.net?subject=VBN%20Player%20of%20the%20Week%20Sponsorship">Your Business</a></p></div>
+      <div class="feature"><span class="eyebrow">Girls</span><h3>Player of the Week</h3><div class="slot">Coming Soon</div><p>Presented by <a class="link" href="mailto:csimpson@nsnsports.net?subject=VBN%20Player%20of%20the%20Week%20Sponsorship">Your Business</a></p></div>
+      <div class="feature"><span class="eyebrow">Boys &amp; Girls</span><h3>Team of the Week</h3><div class="slot">Coming Soon</div><p>Presented by <a class="link" href="mailto:csimpson@nsnsports.net?subject=VBN%20Team%20of%20the%20Week%20Sponsorship">Your Business</a></p></div>
+    </div>
+  </div>
+</section>
+
+<!-- PODCAST: placeholder. Swap the cover box for the show art and point the button at the show
+     (Spotify, Apple, or YouTube). An episode player can be pasted in place of the button row. -->
+<section class="section" style="padding-top:10px;">
+  <div class="wrap">
+    <div class="section-head">
+      <div><span class="eyebrow">Listen</span><h2>The VBN Podcast</h2></div>
+    </div>
+    <div class="podcast">
+      <div class="cover">Podcast Art</div>
+      <div>
+        <span class="eyebrow" style="color:var(--yellow);">Coming This Season</span>
+        <h3>Vermont Basketball, Every Week</h3>
+        <p>Previews, recaps, rankings talk, and interviews with the coaches and players behind the scores.</p>
+        <div class="row">
+          <span class="btn-ghost" style="opacity:.6;cursor:default;">Episodes Coming Soon</span>
+          <a class="link" href="mailto:csimpson@nsnsports.net?subject=VBN%20Podcast%20Sponsorship">Sponsor the Podcast &rarr;</a>
+        </div>
+      </div>
+    </div>
   </div>
 </section>
 </main>
@@ -67,16 +123,24 @@
 <script>
 var ROWS = [], GENDER = '';
 
-// The day to feature: today if there are games today, otherwise the next game day,
-// otherwise (season over) the last game day.
-function pickDay(rows, today) {
+// The homepage previews what is coming: today (with live scores) plus the next few game days.
+// The full schedule holds everything else.
+var PREVIEW_DAYS = 3;      // game days shown
+var PREVIEW_PER_DAY = 6;   // games shown per day before "+ more"
+
+// Game days from today forward, for the boys/girls choice. Season over: just the last game day.
+function previewDays(rows, today) {
   var days = {};
-  rows.forEach(function (g) { var d = VBN.parseDate(g.Date); if (d) days[d.getTime()] = d; });
-  var list = Object.keys(days).map(Number).sort(function (a, b) { return a - b; });
-  if (!list.length) return null;
-  var t = today.getTime();
-  for (var i = 0; i < list.length; i++) if (list[i] >= t) return new Date(list[i]);
-  return new Date(list[list.length - 1]);
+  rows.forEach(function (g) {
+    var d = VBN.parseDate(g.Date);
+    if (!d || (GENDER && String(g.Gender).toUpperCase() !== GENDER)) return;
+    var k = d.getTime();
+    (days[k] = days[k] || []).push(g);
+  });
+  var keys = Object.keys(days).map(Number).sort(function (a, b) { return a - b; });
+  var ahead = keys.filter(function (k) { return k >= today.getTime(); }).slice(0, PREVIEW_DAYS);
+  if (!ahead.length && keys.length) ahead = [keys[keys.length - 1]];
+  return ahead.map(function (k) { return { date: new Date(k), games: orderDay(days[k]) }; });
 }
 
 // Live games first, then games still to play (by tip-off), then finals and postponements.
@@ -87,30 +151,36 @@ function orderDay(games) {
   });
 }
 
+function monthKey(d) { return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+
 function render() {
-  var today = VBN.startOfToday(), day = pickDay(ROWS, today);
+  var today = VBN.startOfToday(), days = previewDays(ROWS, today);
   var grid = document.getElementById('dayGrid'), empty = document.getElementById('dayEmpty');
-  if (!day) {
+  var sched = 'schedule.html' + (GENDER ? '?g=' + GENDER : '');
+  document.getElementById('fullLink').href = sched; document.getElementById('fullBtn').href = sched;
+  if (!days.length) {
     document.getElementById('dayLabel').textContent = '2026-27 Season';
-    grid.innerHTML = ''; empty.style.display = ''; empty.textContent = 'The schedule has no games yet.';
+    grid.innerHTML = ''; empty.style.display = '';
+    empty.textContent = ROWS.length ? 'No ' + (GENDER === 'B' ? 'boys' : 'girls') + ' games on the schedule.' : 'The schedule has no games yet.';
     return;
   }
-  var key = VBN.dayKey(day);
-  var all = ROWS.filter(function (g) { var d = VBN.parseDate(g.Date); return d && VBN.dayKey(d) === key; });
-  var games = orderDay(all.filter(function (g) { return !GENDER || String(g.Gender).toUpperCase() === GENDER; }));
-  var anyLive = all.some(VBN.isLive);
-  var isToday = day.getTime() === today.getTime();
-
-  document.getElementById('dayLabel').innerHTML = anyLive ? '<span class="live-dot"></span>Live Now' : VBN.dayLabel(day);
-  document.getElementById('dayTitle').textContent = isToday ? "Today's Games" : (day < today ? 'Last Game Day' : 'Next Game Day');
+  empty.style.display = 'none';
+  var anyLive = ROWS.some(VBN.isLive), past = days[0].date < today;
+  document.getElementById('dayLabel').innerHTML = anyLive ? '<span class="live-dot"></span>Live Now' : past ? 'Season Complete' : 'Coming Up';
+  document.getElementById('dayTitle').textContent = past ? 'Last Game Day' : 'Games Ahead';
   document.getElementById('heroLabel').innerHTML = anyLive
     ? '<span class="live-dot"></span>Live Now &middot; Boys &amp; Girls Varsity'
-    : (isToday ? 'Game Day' : VBN.dayLabel(day)) + ' &middot; Boys &amp; Girls Varsity';
+    : (days[0].date.getTime() === today.getTime() ? 'Game Day' : 'Next Games ' + VBN.dayLabel(days[0].date)) + ' &middot; Boys &amp; Girls Varsity';
 
   var records = VBN.computeRecords(ROWS);
-  grid.innerHTML = games.map(function (g) { return VBN.gameCardHTML(g, { scores: true, records: records }); }).join('');
-  empty.style.display = games.length ? 'none' : '';
-  empty.textContent = games.length ? '' : 'No ' + (GENDER === 'B' ? 'boys' : 'girls') + ' games this day.';
+  grid.innerHTML = days.map(function (day) {
+    var isToday = day.date.getTime() === today.getTime(), more = day.games.length - PREVIEW_PER_DAY;
+    var link = 'schedule.html?month=' + monthKey(day.date) + (GENDER ? '&g=' + GENDER : '') + '#d-' + VBN.dayKey(day.date);
+    return '<div class="day-block"><div class="day-head">' + (isToday ? 'Today &middot; ' : '') + VBN.dayLabel(day.date) +
+      '<span class="count">' + day.games.length + ' game' + (day.games.length === 1 ? '' : 's') + '</span></div>' +
+      '<div class="games-grid">' + day.games.slice(0, PREVIEW_PER_DAY).map(function (g) { return VBN.gameCardHTML(g, { scores: true, records: records }); }).join('') + '</div>' +
+      (more > 0 ? '<a class="link more-games" href="' + link + '">+ ' + more + ' more game' + (more === 1 ? '' : 's') + ' this day &rarr;</a>' : '') + '</div>';
+  }).join('');
 }
 
 function load() {
