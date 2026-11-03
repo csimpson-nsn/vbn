@@ -17,8 +17,9 @@ var VBN = (function () {
   var GOOGLE = {
     schedule: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=0&single=true&output=csv',
     teams:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv',
-    stats:    '',   // paste the published Stats tab link here once the tab exists
+    stats:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=598806204&single=true&output=csv',
     roster:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv',
+    sponsors: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=174841060&single=true&output=csv'
   };
 
   var CONTACT = 'csimpson@nsnsports.net';
@@ -347,8 +348,23 @@ var VBN = (function () {
   /* ---------- player stats ----------
      Stats tab: one row per player per game. GameID ties each row to a Schedule game (date, opponent).
      A blank cell means "not tracked that game", which is different from 0. Per-game averages use only
-     the games where that stat was entered, so a team that only reports points is not dragged down. */
-  var STAT_COLS = ['PTS', 'FGM', 'FGA', '3PM', '3PA', 'FTM', 'FTA', 'REB', 'AST', 'STL', 'BLK'];
+     the games where that stat was entered, so a team that only reports points is not dragged down.
+     Coaches enter 2PM 2PA 3PM 3PA FTM FTA REB AST STL BLK. Points and field goals are worked out here
+     (see shotTotals), so there is no points box to mistype. */
+  var STAT_COLS = ['PTS', 'FGM', 'FGA', '2PM', '2PA', '3PM', '3PA', 'FTM', 'FTA', 'REB', 'AST', 'STL', 'BLK'];
+  // Points = 2 x 2PM + 3 x 3PM + FTM, FGM = 2PM + 3PM, FGA = 2PA + 3PA. Once any box in a sum is filled,
+  // a blank one in that sum counts as 0 (a player who took no 3s often gets a blank, not a 0).
+  // Older rows typed with PTS, FGM, and FGA and no 2s columns are still read as typed.
+  function shotTotals(r) {
+    var v = {}, any = function (cols) { return cols.some(function (c) { return num(r[c]) !== null; }); };
+    STAT_COLS.forEach(function (c) { v[c] = num(r[c]); });
+    var z = function (c) { return v[c] || 0; };
+    var twos = any(['2PM', '2PA']);
+    if (twos || (v.PTS === null && any(['3PM', 'FTM']))) v.PTS = 2 * z('2PM') + 3 * z('3PM') + z('FTM');
+    if (any(['2PM'])) v.FGM = z('2PM') + z('3PM');
+    if (any(['2PA'])) v.FGA = z('2PA') + z('3PA');
+    return v;
+  }
   function gradeLabel(gradYear) {
     var y = parseInt(gradYear, 10);
     if (!y) return '';
@@ -385,21 +401,22 @@ var VBN = (function () {
       var p = P[rk];
       if (p.gameIds[id]) { warnings.push('Stats row ' + (i + 2) + ': ' + p.player + ' is entered twice for ' + id); return; }
       p.gameIds[id] = true; p.gp++;
-      [['FGM', 'FGA'], ['3PM', '3PA'], ['FTM', 'FTA'], ['3PM', 'FGM']].forEach(function (x) {
+      [['2PM', '2PA'], ['FGM', 'FGA'], ['3PM', '3PA'], ['FTM', 'FTA'], ['3PM', 'FGM']].forEach(function (x) {
         var a = num(r[x[0]]), b = num(r[x[1]]);
         if (a !== null && b !== null && a > b) warnings.push('Stats row ' + (i + 2) + ': ' + x[0] + ' is more than ' + x[1] + ' for ' + p.player + '. Check the headers.');
       });
+      var v = shotTotals(r);
+      if (num(r.PTS) !== null && v.PTS !== num(r.PTS)) warnings.push('Stats row ' + (i + 2) + ': ' + p.player + ' shows ' + r.PTS + ' points, but the shots add up to ' + v.PTS + '. Using ' + v.PTS + '.');
       STAT_COLS.forEach(function (c) {
-        var v = num(r[c]);
-        if (v === null) return;
-        p.tot[c] = (p.tot[c] || 0) + v; p.tracked[c] = (p.tracked[c] || 0) + 1;
+        if (v[c] === null || v[c] === undefined) return;
+        p.tot[c] = (p.tot[c] || 0) + v[c]; p.tracked[c] = (p.tracked[c] || 0) + 1;
       });
     });
     var players = Object.keys(P).map(function (k) {
       var p = P[k];
       p.per = {};
       STAT_COLS.forEach(function (c) { p.per[c] = p.tracked[c] ? p.tot[c] / p.tracked[c] : null; });
-      [['FG', 'FGM', 'FGA'], ['3P', '3PM', '3PA'], ['FT', 'FTM', 'FTA']].forEach(function (x) {
+      [['FG', 'FGM', 'FGA'], ['2P', '2PM', '2PA'], ['3P', '3PM', '3PA'], ['FT', 'FTM', 'FTA']].forEach(function (x) {
         var made = p.tot[x[1]] || 0, att = p.tot[x[2]] || 0;
         p.per[x[0] + '%'] = att ? made / att : null;
       });
@@ -533,7 +550,7 @@ var VBN = (function () {
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
     isFinal: isFinal, isLive: isLive, isOff: isOff, isPending: isPending, computeRecords: computeRecords, num: num,
     INDEX_POINTS: INDEX_POINTS, vpaDiv: vpaDiv, indexSkipReason: indexSkipReason, standings: standings, pct: pct, recText: recText, sortLeague: sortLeague, sortIndex: sortIndex, ordinal: ordinal, teamRankings: teamRankings,
-    STAT_COLS: STAT_COLS, gradeLabel: gradeLabel, fixCase: fixCase, aggregateStats: aggregateStats,
+    STAT_COLS: STAT_COLS, shotTotals: shotTotals, gradeLabel: gradeLabel, fixCase: fixCase, aggregateStats: aggregateStats,
     gameCardHTML: gameCardHTML, wireCards: wireCards, renderChrome: renderChrome
   };
 })();
