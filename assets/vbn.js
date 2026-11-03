@@ -19,7 +19,6 @@ var VBN = (function () {
     teams:    'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1570140558&single=true&output=csv',
     stats:    '',   // paste the published Stats tab link here once the tab exists
     roster:   'https://docs.google.com/spreadsheets/d/e/2PACX-1vR124tvUPhqDU7cJ9fw2H2YQXvNP_XcH5F76KlxUwDdgJ_nv12PpyLHGeIWErXDzT3uxLoh_kxyvmmI/pub?gid=1159215250&single=true&output=csv',
-    sponsors: ''    // paste the published SponsorDirectory tab link here once the tab exists
   };
 
   var CONTACT = 'csimpson@nsnsports.net';
