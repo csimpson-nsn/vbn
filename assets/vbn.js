@@ -514,7 +514,7 @@ var VBN = (function () {
       h.innerHTML =
         '<div class="nav"><div class="nav-left">' +
           '<button class="menu-toggle" aria-label="Open menu" aria-expanded="false">&#9776;</button>' +
-          '<a href="index.html" class="logo"><span class="ball"></span><span class="full">VERMONT <span class="b">BASKETBALL</span></span><span class="short">VBN</span> <span class="net">NETWORK</span></a>' +
+          '<a href="index.html" class="logo" aria-label="Vermont Basketball Network home"><img class="brand-mark" src="assets/vbn-logo.png" alt="VBN"><span class="full">VERMONT <span class="b">BASKETBALL</span></span> <span class="net">NETWORK</span></a>' +
         '</div><div class="nav-actions">' +
           '<a href="https://www.nsnsports.net" target="_blank" rel="noopener" class="btn"><span>Watch Live</span></a>' +
           '<a href="https://store.nsnsports.net/" target="_blank" rel="noopener" class="btn-ghost"><span>Purchase Previous Games</span></a>' +
@@ -531,9 +531,8 @@ var VBN = (function () {
     if (f) {
       f.className = 'site-footer';
       f.innerHTML = '<div class="wrap"><div class="footer-grid">' +
-        '<div class="footer-col"><a href="index.html" class="logo" style="font-size:1.15rem;opacity:1;"><span class="ball" style="width:26px;height:26px;"></span>VBN</a>' +
+        '<div class="footer-col"><a href="index.html" class="logo" style="opacity:1;" aria-label="Vermont Basketball Network home"><img class="footer-mark" src="assets/vbn-logo.png" alt="VBN" loading="lazy"></a>' +
           '<p>The home court for Vermont high school basketball: scores, schedules, standings, and stats for boys and girls.</p>' +
-          // NSN credit. The VBN wordmark above is a placeholder until the VBN logo is done; swap it in the header and here.
           '<a class="nsn-credit" href="https://www.nsnsports.net" target="_blank" rel="noopener"><span>A production of</span><img src="assets/nsn-logo.png" alt="Northeast Sports Network" loading="lazy" onerror="this.style.display=\'none\'"></a></div>' +
         '<div class="footer-col"><h4>Network</h4><a href="live-scores.html">Live Scores</a><a href="schedule.html">Full Schedule</a><a href="standings.html">Standings</a><a href="teams.html">All Teams</a><a href="statistics.html">Statistics</a><a href="https://store.nsnsports.net/" target="_blank" rel="noopener">Video Archive</a><a href="scorekeeper.html">Contributor Sign In</a></div>' +
         '<div class="footer-col"><h4>Partner With Us</h4><a href="mailto:' + CONTACT + '?subject=VBN%20Sponsorship">Sponsorship Packages</a><a href="mailto:' + CONTACT + '?subject=VBN%20Title%20Sponsor">Title Sponsor Inquiry</a></div>' +

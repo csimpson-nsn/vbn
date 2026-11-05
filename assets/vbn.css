@@ -37,6 +37,11 @@ img{max-width:100%;display:block;}
 .logo .b{color:var(--hoop);}
 .logo .net{color:var(--steel);font-size:1.05rem;}
 .logo .short{display:none;}
+.brand-mark{width:48px;height:48px;flex-shrink:0;display:block;}   /* the VBN logo, assets/vbn-logo.png */
+.footer-mark{width:104px;height:104px;display:block;}
+/* The logo file has a solid black square behind it. "lighten" lets the header and footer color show through
+   that black, so no box edge shows against the near-black backgrounds. */
+.brand-mark,.footer-mark{mix-blend-mode:lighten;}
 .ball{width:34px;height:34px;border-radius:50%;background:var(--hoop);position:relative;flex-shrink:0;overflow:hidden;}
 .ball::before{content:"";position:absolute;top:0;bottom:0;left:50%;border-left:2px solid var(--ink);}
 .ball::after{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px solid var(--ink);}
@@ -57,6 +62,7 @@ img{max-width:100%;display:block;}
 @media (max-width:700px){
   .nav{padding:12px 16px;gap:8px;}
   .logo{font-size:1.3rem;}
+  .brand-mark{width:42px;height:42px;}
   .logo .full,.logo .net{display:none;}
   .logo .short{display:inline;}
   .nav-actions .btn{padding:9px 14px;font-size:.85rem;}
