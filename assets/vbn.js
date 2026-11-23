@@ -468,6 +468,9 @@ var VBN = (function () {
     if (g.Event) metaLeft += ' &middot; ' + (neutral ? '' : 'at ') + esc(g.Event);
     var tags = String(g.GameOfWeek || '').trim().toLowerCase() === 'yes' ? '<span class="tag gow">Game of the Week</span>' : '';
     var jv = timeLabel(g.JVTime);
+    // A game moved to a new date carries "Moved from 12/11." in its Notes (added by the Scorekeeper Hub script).
+    var moved = String(g.Notes || '').match(/moved from (\d{1,2})\/(\d{1,2})/i);
+    if (moved && !fin && !pend) tags += '<span class="tag">Moved from ' + MONTHS[+moved[1] - 1] + ' ' + +moved[2] + '</span>';
     var metaRight = tags || (jv && !live && !fin && !off && !pend ? 'JV ' + jv : '');
 
     var url = String(g.BroadcastURL || '').trim();
