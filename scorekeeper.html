@@ -12,6 +12,8 @@
   </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <meta name="robots" content="noindex, nofollow">
 <title>Contributors | Vermont Basketball Network</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -91,6 +93,14 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
 .box-grid tr.in td.pcol{box-shadow:inset 3px 0 0 var(--green);}
 .totalbar{position:sticky;bottom:0;background:var(--court);border:1px solid var(--line);border-top:3px solid var(--hoop);padding:12px 14px;margin-top:16px;font-family:'Barlow Condensed',sans-serif;font-size:1.05rem;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;z-index:5;}
 .totalbar b{font-family:'Anton',sans-serif;font-size:1.4rem;color:var(--snow);font-weight:400;}
+/* schedule changes */
+.ctypes{display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;}
+.ctype{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.04em;font-size:1rem;color:var(--snow);background:var(--ink);border:1px solid var(--line);padding:13px 14px;cursor:pointer;text-align:left;}
+.ctype.on{background:var(--green);border-color:var(--green);}
+.ctype.stop.on{background:var(--live);border-color:var(--live);}
+input.input[type=date],input.input[type=time]{color-scheme:dark;}
+textarea.input{font-family:'Barlow',sans-serif;font-weight:500;font-size:1rem;min-height:84px;resize:vertical;}
+.pick-game .wait{color:var(--yellow);}
 @media (max-width:440px){.periods{grid-template-columns:repeat(2,1fr);}}
 @media (min-width:560px){</style>
 </head>
@@ -103,7 +113,7 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
   <div class="wrap">
     <span class="eyebrow">Passcode Required</span>
     <h1>Contributors</h1>
-    <p>Send the score at the end of each quarter, or a box score after the game. A VBN approver checks everything before it shows on the site.</p>
+    <p>Send the score at the end of each quarter, a box score after the game, or a schedule change. A VBN approver checks everything before it shows on the site.</p>
   </div>
 </section>
 
@@ -129,6 +139,7 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
       <div class="tab-row" id="modeTabs" style="margin-bottom:18px;">
         <button class="tab active" data-mode="submit" type="button" id="scoreTab">Send a Score</button>
         <button class="tab" data-mode="stats" type="button" id="statsTab" hidden>Box Score</button>
+        <button class="tab" data-mode="change" type="button" id="changeTab">Report a Change</button>
         <button class="tab" data-mode="approve" type="button" id="approveTab" hidden>Approvals</button>
       </div>
 
@@ -204,7 +215,44 @@ select.input{appearance:none;-webkit-appearance:none;cursor:pointer;text-align:c
         </div>
       </div>
 
+      <div id="changeView" hidden>
+        <div class="panel">
+          <h2>1. Pick the game</h2>
+          <p>Games from yesterday through the next five weeks, plus postponed games waiting for a makeup date.</p>
+          <div class="pick" id="changeGameList" style="margin-top:12px;"></div>
+          <button class="textbtn" id="refreshChangeGames" type="button" style="margin-top:12px;">Refresh games</button>
+        </div>
+        <form class="panel" id="changeForm" hidden autocomplete="off">
+          <h2>2. What changed?</h2>
+          <p id="changeGame"></p>
+          <div class="ctypes" id="ctypes">
+            <button type="button" class="ctype" data-t="time">New time, same day</button>
+            <button type="button" class="ctype" data-t="date">New date</button>
+            <button type="button" class="ctype stop" data-t="postponed">Postponed, date to be decided</button>
+            <button type="button" class="ctype stop" data-t="cancelled">Cancelled, will not be made up</button>
+            <button type="button" class="ctype" data-t="other">Something else</button>
+          </div>
+          <div class="field" id="cDateField" hidden><label for="cDate">New date</label><input class="input" type="date" id="cDate"></div>
+          <div class="field" id="cTimeField" hidden><label for="cTime" id="cTimeLabel">New time</label><input class="input" type="time" id="cTime" step="300"></div>
+          <div class="field"><label for="cNote" id="cNoteLabel">Note (optional)</label>
+            <textarea class="input" id="cNote" maxlength="300" placeholder="Snow, gym conflict, new location..."></textarea></div>
+          <button class="btn wide" type="submit"><span>Review</span></button>
+          <div class="confirm" id="changeConfirm" hidden>
+            <div id="changeConfirmText"></div>
+            <div class="row">
+              <button class="btn" type="button" id="changeSend"><span>Send Change</span></button>
+              <button class="textbtn" type="button" id="changeEdit">Go back and fix</button>
+            </div>
+          </div>
+        </form>
+      </div>
+
       <div id="approveView" hidden>
+        <div class="panel">
+          <h2>Schedule changes waiting</h2>
+          <p>Approving updates the Schedule tab. "Something else" changes nothing by itself: make that change by hand, then mark it done.</p>
+          <div id="changePendList"></div>
+        </div>
         <div class="panel">
           <h2>Scores waiting</h2>
           <p>Check each score against the scorebook or broadcast. Approving a game's newest update clears its older ones. Rejecting a final puts the game back to its last approved score.</p>
@@ -297,9 +345,9 @@ function signIn(code) {
     S.duties = d.duties || { scores: true, stats: false };
     $('scoreTab').hidden = !S.duties.scores;
     $('statsTab').hidden = !S.duties.stats;
-    $('modeTabs').hidden = [S.duties.scores, S.duties.stats, d.role === 'Approver'].filter(Boolean).length < 2;
+    // Report a Change is open to everyone, so there are always at least two tabs to show.
     $('scoreForm').hidden = true;
-    setMode(S.duties.scores ? 'submit' : 'stats');   // always start here, even if the last person on this phone was on Approvals
+    setMode(S.duties.scores ? 'submit' : S.duties.stats ? 'stats' : 'change');   // always start here, even if the last person on this phone was on Approvals
     say('');
     renderGames();
     if (d.role === 'Approver') loadPending(true);
@@ -315,7 +363,8 @@ function signOut(reason) {
   clearInterval(S.pendTimer);
   S = { code: '', name: '', role: '', games: [], gender: S.gender, game: null, period: '', pendTimer: null, duties: {} };
   B = { games: [], game: null, team: '', roster: [], lines: {}, off: {}, open: '' };
-  $('teamPanel').hidden = true; $('boxPanel').hidden = true;
+  C = { games: null, game: null, type: '' };
+  $('teamPanel').hidden = true; $('boxPanel').hidden = true; $('changeForm').hidden = true;
   $('app').hidden = true; $('loginPanel').hidden = false; $('code').value = '';
   say(reason || '', !!reason);
 }
@@ -416,13 +465,14 @@ function refreshGames() {
 function loadPending(quiet) {
   return Promise.all([
     api('pending').then(function (d) { renderPending(d.pending || []); }),
-    api('pendingStats').then(function (d) { renderStatPending(d.pending || []); })
+    api('pendingStats').then(function (d) { renderStatPending(d.pending || []); }),
+    api('pendingChanges').then(function (d) { renderChangePending(d.pending || []); })
   ]).catch(function (e) { if (!quiet) say(e.message, true); });
 }
 
-var PEND_COUNT = { scores: 0, stats: 0 };
+var PEND_COUNT = { scores: 0, stats: 0, changes: 0 };
 function countTab() {
-  var n = PEND_COUNT.scores + PEND_COUNT.stats;
+  var n = PEND_COUNT.scores + PEND_COUNT.stats + PEND_COUNT.changes;
   $('approveTab').textContent = 'Approvals' + (n ? ' (' + n + ')' : '');
 }
 
@@ -686,12 +736,170 @@ function boxSend() {
     .then(function () { btn.disabled = false; });
 }
 
+/* ---------- schedule changes ----------
+   Pick a game, pick what changed, fill in only what that change needs, review, send.
+   Every change waits for an approver (an approver's own change posts right away). */
+var C = { games: null, game: null, type: '' };
+var CHANGE_WORDS = { time: 'New time, same day', date: 'New date', postponed: 'Postponed, date to be decided',
+                     cancelled: 'Cancelled, will not be made up', other: 'Something else' };
+
+function loadChangeGames() {
+  $('changeGameList').innerHTML = '<p class="muted">Loading games&hellip;</p>';
+  return api('changeGames').then(function (d) { C.games = d.games || []; renderChangeGames(); })
+    .catch(function (e) { $('changeGameList').innerHTML = ''; say(e.message, true); });
+}
+
+function whenText(x) {
+  var d = VBN.parseDate(x.date);
+  return (d ? VBN.dayLabel(d) : x.date) + (x.time ? ' at ' + (VBN.timeLabel(x.time) || x.time) : '');
+}
+
+function renderChangeGames() {
+  var list = (C.games || []).filter(function (x) { return !S.gender || x.gender.toUpperCase() === S.gender; });
+  // Postponed games waiting for a makeup date first, then everything else by date.
+  var post = list.filter(function (x) { return /^postpon/i.test(x.quarter) && x.offset < 0; });
+  var rest = list.filter(function (x) { return post.indexOf(x) === -1; });
+  var html = '', last = null;
+  function card(x) {
+    var on = C.game && C.game.id === x.id ? ' on' : '';
+    var right = x.waiting ? '<span class="state wait">Change waiting</span>'
+      : x.quarter ? '<span class="state done">' + esc(x.quarter) + '</span>' : '';
+    return '<button type="button" class="pick-game' + on + '" data-id="' + esc(x.id) + '">' +
+      '<span><span class="teams">' + esc(teamName(x.team2, x.gender)) + ' at ' + esc(teamName(x.team1, x.gender)) + '</span><br>' +
+      '<span class="sub">' + (x.gender === 'G' ? 'Girls' : 'Boys') + ' &middot; ' + esc(whenText(x)) + ' &middot; ' + esc(x.id) + '</span></span>' + right + '</button>';
+  }
+  if (post.length) html += '<div class="day-head" style="margin:8px 0 0;">Postponed, needs a makeup date</div>' + post.map(card).join('');
+  rest.forEach(function (x) {
+    var d = VBN.parseDate(x.date), key = d ? VBN.dayLabel(d) : x.date;
+    if (key !== last) { html += '<div class="day-head" style="margin:8px 0 0;">' + esc(x.offset === 0 ? 'Today' : x.offset === -1 ? 'Yesterday' : x.offset === 1 ? 'Tomorrow' : key) + '</div>'; last = key; }
+    html += card(x);
+  });
+  $('changeGameList').innerHTML = html || '<p class="empty">No ' + (S.scope ? esc(S.scope) + ' ' : '') + 'games coming up in the next five weeks.' +
+    (S.scope ? ' If that looks wrong, contact ' + esc(VBN.CONTACT) + '.' : '') + '</p>';
+}
+
+// "7:00 PM" -> "19:00" for the time box.
+function to24(t) {
+  var m = VBN.parseTime(t);
+  return m === null ? '' : ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + m % 60).slice(-2);
+}
+// "19:00" or "09:30" from the time box -> "7:00 PM" / "9:30 AM". The time box always uses 24-hour time.
+function label24(t) {
+  var m = String(t || '').match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return '';
+  var h = +m[1];
+  return (h % 12 || 12) + ':' + m[2] + ' ' + (h >= 12 ? 'PM' : 'AM');
+}
+function todayISO() {
+  var d = new Date();
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+
+function pickChangeGame(id) {
+  C.game = (C.games || []).find(function (x) { return x.id === id; });
+  if (!C.game) return;
+  renderChangeGames();
+  var g = C.game;
+  $('changeGame').innerHTML = '<b style="color:var(--snow)">' + esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '</b>' +
+    ' &middot; on the schedule now: ' + esc(whenText(g)) + (g.quarter ? ' (' + esc(g.quarter) + ')' : '') +
+    (g.waiting ? '<br><span class="warn">A change for this game is already waiting. Sending another replaces it.</span>' : '');
+  $('cDate').min = todayISO();
+  $('cDate').value = ''; $('cTime').value = to24(g.time); $('cNote').value = '';
+  // A postponed game can only get a new date (or be cancelled, or a note).
+  var postponed = /^postpon/i.test(g.quarter);
+  document.querySelectorAll('#ctypes .ctype').forEach(function (b) {
+    b.hidden = (postponed && (b.dataset.t === 'time' || b.dataset.t === 'postponed')) || (/^cancel/i.test(g.quarter) && b.dataset.t !== 'date' && b.dataset.t !== 'other');
+  });
+  setCType(postponed ? 'date' : '');
+  $('changeForm').hidden = false;
+  $('changeForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Shows only the boxes the chosen change needs.
+function setCType(t) {
+  C.type = t;
+  document.querySelectorAll('#ctypes .ctype').forEach(function (b) { b.classList.toggle('on', b.dataset.t === t); });
+  $('cDateField').hidden = t !== 'date';
+  $('cTimeField').hidden = t !== 'time' && t !== 'date';
+  $('cTimeLabel').textContent = t === 'date' ? 'Time on the new date' : 'New time';
+  $('cNoteLabel').textContent = t === 'other' ? 'What changed?' : 'Note (optional)';
+  $('changeConfirm').hidden = true;
+}
+
+function changeReview(e) {
+  e.preventDefault();
+  var g = C.game, t = C.type;
+  if (!g) return say('Pick a game first.', true);
+  if (!t) return say('Pick what changed.', true);
+  var date = $('cDate').value, time = $('cTime').value, note = $('cNote').value.trim();
+  if (t === 'date' && !date) return say('Pick the new date.', true);
+  if (t === 'date' && date < todayISO()) return say('The new date has already passed.', true);
+  if (t === 'time' && !time) return say('Pick the new time.', true);
+  if (t === 'other' && note.length < 3) return say('Describe the change in the note.', true);
+  say('');
+  var newWhen = '';
+  if (t === 'date') { var p = date.split('-'); newWhen = VBN.dayLabel(new Date(+p[0], +p[1] - 1, +p[2])) + (time ? ' at ' + label24(time) : ''); }
+  if (t === 'time') newWhen = label24(time) + ', same day';
+  $('changeConfirmText').innerHTML = '<b>' + esc(CHANGE_WORDS[t]) + '</b><br>' +
+    esc(teamName(g.team2, g.gender)) + ' at ' + esc(teamName(g.team1, g.gender)) + '<br>' +
+    'Was: ' + esc(whenText(g)) + (newWhen ? '<br>Now: <b>' + esc(newWhen) + '</b>' : '') +
+    (note ? '<br>Note: ' + esc(note) : '') + '<br><span class="muted">' +
+    (S.role === 'Approver' ? (t === 'other' ? 'This is logged. Make the change on the Schedule tab by hand.' : 'This updates the schedule right away.')
+                           : 'An approver checks it before the schedule changes.') + '</span>';
+  $('changeConfirm').hidden = false;
+  $('changeConfirm').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function changeSend() {
+  var btn = $('changeSend'); btn.disabled = true;
+  var t = C.type;
+  api('submitChange', { gameId: C.game.id, type: t, date: t === 'date' ? $('cDate').value : '',
+                        time: t === 'date' || t === 'time' ? $('cTime').value : '', note: $('cNote').value.trim() })
+    .then(function (d) {
+      say(d.message);
+      C.games = d.games || C.games; C.game = null;
+      $('changeForm').hidden = true; renderChangeGames();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (S.role === 'Approver') loadPending(true);
+    })
+    .catch(function (e) { say(e.message, true); $('changeConfirm').hidden = true; })
+    .then(function () { btn.disabled = false; });
+}
+
+function renderChangePending(list) {
+  PEND_COUNT.changes = list.length; countTab();
+  $('changePendList').innerHTML = list.length ? list.map(function (c) {
+    return '<div class="pend" data-id="' + esc(c.id) + '">' +
+      '<div class="top"><span><b>' + esc(c.matchup) + '</b></span><span class="muted">' + esc(c.gameId) + '</span></div>' +
+      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;font-size:1.1rem;"><b style="color:var(--yellow)">' + esc(c.label) + '</b></div>' +
+      '<div class="sub">On the schedule now: ' + esc(c.now) + '</div>' +
+      (c.note ? '<div class="sub">Note: ' + esc(c.note) + '</div>' : '') +
+      '<div class="sub">Sent by ' + esc(c.keeper) + (c.when ? ' at ' + esc(c.when) : '') + '</div>' +
+      '<div class="row"><button class="btn" type="button" data-act="approve"><span>' + (c.type === 'other' ? 'Mark Done' : 'Approve') + '</span></button>' +
+      '<button class="btn reject" type="button" data-act="reject"><span>Reject</span></button></div></div>';
+  }).join('') : '<p class="empty">No schedule changes waiting.</p>';
+}
+
+function decideChange(card, act) {
+  if (act === 'reject' && !card.dataset.sure) {
+    card.dataset.sure = '1';
+    card.querySelector('[data-act="reject"] span').textContent = 'Tap again to reject';
+    return;
+  }
+  card.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+  api('reviewChange', { reqId: card.dataset.id, decision: act })
+    .then(function (d) { say(d.message); renderChangePending(d.pending || []); C.games = null; })
+    .catch(function (e) { say(e.message, true); loadPending(true); });
+}
+
 function setMode(mode) {
   document.querySelectorAll('#modeTabs .tab').forEach(function (b) { b.classList.toggle('active', b.dataset.mode === mode); });
   $('submitView').hidden = mode !== 'submit';
   $('statsView').hidden = mode !== 'stats';
+  $('changeView').hidden = mode !== 'change';
   $('approveView').hidden = mode !== 'approve';
   if (mode === 'stats' && !B.games.length) loadStatGames();
+  if (mode === 'change' && !C.games) loadChangeGames();
   clearInterval(S.pendTimer);
   if (mode === 'approve') { loadPending(); S.pendTimer = setInterval(function () { loadPending(true); }, 60000); }
 }
@@ -749,6 +957,16 @@ document.addEventListener('DOMContentLoaded', function () {
   $('boxEdit').addEventListener('click', function () { $('boxConfirm').hidden = true; });
   $('statPendList').addEventListener('click', function (e) {
     var b = e.target.closest('button[data-act]'); if (b) decideStats(b.closest('.pend'), b.dataset.act);
+  });
+  $('refreshChangeGames').addEventListener('click', loadChangeGames);
+  $('changeGameList').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickChangeGame(b.dataset.id); });
+  $('ctypes').addEventListener('click', function (e) { var b = e.target.closest('.ctype'); if (b) setCType(b.dataset.t); });
+  ['cDate', 'cTime', 'cNote'].forEach(function (id) { $(id).addEventListener('input', function () { $('changeConfirm').hidden = true; }); });
+  $('changeForm').addEventListener('submit', changeReview);
+  $('changeSend').addEventListener('click', changeSend);
+  $('changeEdit').addEventListener('click', function () { $('changeConfirm').hidden = true; });
+  $('changePendList').addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-act]'); if (b) decideChange(b.closest('.pend'), b.dataset.act);
   });
   $('scoreForm').addEventListener('submit', review);
   $('sendBtn').addEventListener('click', send);
