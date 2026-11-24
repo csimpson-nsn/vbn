@@ -12,6 +12,8 @@
   </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <title>Statistics | Vermont Basketball Network</title>
 <meta name="description" content="Vermont high school basketball stat leaders: points, rebounds, assists, steals, blocks, and shooting for Vermont boys and girls.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +27,24 @@
 .stat-line td.pcol .crest{width:16px;height:16px;}
 .stat-line th.grp{border-left:1px solid var(--line);}
 .stat-line td.grp{border-left:1px solid #1a1a1d;}
+
+/* Presenting sponsor: Poulsen Lumber, Littleton NH. Gold accents on this page only. */
+:root{--gold:#d9bb7e;--gold-deep:#b8924a;}
+.sp-hero{position:relative;overflow:hidden;text-align:center;border-top:3px solid var(--gold);background:radial-gradient(ellipse at 50% 120%,rgba(217,187,126,.22),transparent 60%),var(--ink);}
+.sp-hero > .wrap{position:relative;z-index:1;}
+.sp-bg{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(1100px,130%);aspect-ratio:800/547;background:url(assets/sponsors/poulsen-lumber.png) center/contain no-repeat;opacity:.06;filter:grayscale(1) blur(1px);}
+.sp-hero .eyebrow{justify-content:center;color:var(--gold);}
+.sp-hero .eyebrow::before,.sp-hero .eyebrow::after{content:"";width:28px;height:2px;background:var(--gold);}
+.sp-hero h1 em{color:var(--gold);}
+.sp-hero p{margin-left:auto;margin-right:auto;}
+.sp-center{display:flex;flex-direction:column;align-items:center;gap:6px;margin:0 auto 22px;}
+.sp-logo{display:block;width:260px;height:auto;}
+.sp-info{display:flex;gap:14px;align-items:baseline;}
+.sp-place{font-family:'Barlow Condensed',sans-serif;font-weight:700;text-transform:uppercase;letter-spacing:.14em;font-size:.8rem;color:var(--steel);}
+.sp-tel{font-family:'Anton',sans-serif;letter-spacing:.04em;color:var(--gold);font-size:1.15rem;}
+.sp-tel:hover{color:var(--snow);}
+.tab.active{background:var(--gold-deep);border-color:var(--gold-deep);}
+@media (max-width:700px){.sp-logo{width:200px;}}
 </style>
 <script src="assets/vbn.js"></script>
 </head>
@@ -33,17 +53,14 @@
 <header id="site-header"></header>
 
 <main>
-<!-- SPONSOR SLOT: statistics page banner. Swap the dashed box for a sponsor logo. -->
-<div class="sponsor-band">
-  <div class="wrap inner">
-    <span class="eyebrow" style="color:var(--yellow);">Stat Leaders Presented By</span>
-    <span class="sponsor-slot">Your Logo Here</span>
-    <a class="sponsor-cta" href="mailto:csimpson@nsnsports.net?subject=VBN%20Statistics%20Sponsorship">Sponsor This Page &rarr;</a>
-  </div>
-</div>
-
-<section class="page-hero">
+<!-- PRESENTING SPONSOR: Poulsen Lumber, Littleton NH. No website, so the phone number is the link. -->
+<section class="page-hero sp-hero">
+  <div class="sp-bg" aria-hidden="true"></div>
   <div class="wrap">
+    <div class="sp-center">
+      <img class="sp-logo" src="assets/sponsors/poulsen-lumber.png" alt="Poulsen Lumber, Littleton NH" width="800" height="547">
+      <span class="sp-info"><span class="sp-place">Littleton, NH</span><a class="sp-tel" href="tel:+16034445425">603-444-5425</a></span>
+    </div>
     <span class="eyebrow">2026-27 Season</span>
     <h1>Stat <em>Leaders</em></h1>
     <p>Every player's full stat line, per game or season totals. Tap any column to sort by it. Averages use only the games where that stat was reported, so a team that sends points but not rebounds is not counted as zero. Leaderboards have minimums; pick a team to see everyone.</p>
