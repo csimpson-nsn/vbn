@@ -152,6 +152,7 @@ a.sponsor-tile.open-spot:hover{color:var(--yellow);border-color:var(--yellow);}
 .game-card.live .game-status{color:var(--live);}
 .game-card.off .game-status{color:var(--steel);}
 .gpill{font-size:.66rem;letter-spacing:.08em;color:var(--steel);border:1px solid var(--line);padding:1px 6px;flex-shrink:0;}
+.ago{text-transform:none;letter-spacing:0;color:var(--steel);font-weight:500;}
 .live-dot{width:9px;height:9px;border-radius:50%;background:var(--live);display:inline-block;margin-right:7px;animation:pulse 1.4s infinite;}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(226,59,46,.65);}70%{box-shadow:0 0 0 8px rgba(226,59,46,0);}100%{box-shadow:0 0 0 0 rgba(226,59,46,0);}}
 .matchup{display:flex;flex-direction:column;gap:8px;}

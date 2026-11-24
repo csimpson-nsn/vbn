@@ -197,6 +197,19 @@ var VBN = (function () {
   function isPending(g) { return quarter(g) === 'pending final'; }
   function isOff(g) { var q = quarter(g); return q.indexOf('postpon') === 0 || q.indexOf('cancel') === 0; }
   function isLive(g) { var q = quarter(g); return q !== '' && !isFinal(g) && !isOff(g) && !isPending(g); }
+  // What fans see for a live game's Quarter. "In Q2" = the 2nd quarter is being played; "Q1" = the 1st just ended.
+  var Q_LABELS = { 'in q1': '1st Qtr', 'q1': 'End of 1st', 'in q2': '2nd Qtr', 'q2': 'Halftime', 'half': 'Halftime',
+    'in q3': '3rd Qtr', 'q3': 'End of 3rd', 'in q4': '4th Qtr', 'q4': 'End of 4th', 'in ot': 'OT', 'ot': 'End of OT',
+    'in 2ot': '2OT', '2ot': 'End of 2OT', 'in 3ot': '3OT', '3ot': 'End of 3OT' };
+  function quarterLabel(q) { var k = String(q || '').trim(); return Q_LABELS[k.toLowerCase()] || k; }
+  // "updated 3 min ago" from the Schedule tab's Updated column (written by the Scorekeeper Hub script). '' if unknown or old.
+  function updatedAgo(g, now) {
+    var t = Date.parse(String(g.Updated || '').trim());
+    if (isNaN(t)) return '';
+    var min = Math.floor(((now || Date.now()) - t) / 60000);
+    if (min < 0 || min > 90) return '';
+    return min < 1 ? 'updated just now' : 'updated ' + min + ' min ago';
+  }
   function num(v) { var s = String(v == null ? '' : v).trim(); return s !== '' && isFinite(s) ? Number(s) : null; }
 
   // Overall records from Final games only. Key: team|gender.
@@ -439,7 +452,11 @@ var VBN = (function () {
 
     var status;
     if (off) status = esc(g.Quarter);
-    else if (live) status = '<span><span class="live-dot"></span>Live &middot; ' + esc(g.Quarter) + '</span>';
+    else if (live) {
+      var ago = updatedAgo(g);
+      status = '<span><span class="live-dot"></span>Live &middot; ' + esc(quarterLabel(g.Quarter)) +
+        (ago ? ' <span class="ago">&middot; ' + ago + '</span>' : '') + '</span>';
+    }
     else if (fin && opts.scores) status = esc(g.Quarter);
     else if (pend && opts.scores) status = 'Final &middot; Awaiting Approval';
     else {
@@ -550,7 +567,7 @@ var VBN = (function () {
     team: team, displayName: displayName, crestHTML: crestHTML, sponsorsFor: sponsorsFor, leagueOf: leagueOf, isMember: isMember, hasLeague: hasLeague, isActiveRow: isActiveRow, leagueGroup: leagueGroup, leagueList: leagueList, key: key, norm: norm,
     parseDate: parseDate, parseTime: parseTime, timeLabel: timeLabel, gameStart: gameStart, sortTime: sortTime,
     dayKey: dayKey, dayLabel: dayLabel, startOfToday: startOfToday,
-    isFinal: isFinal, isLive: isLive, isOff: isOff, isPending: isPending, computeRecords: computeRecords, num: num,
+    isFinal: isFinal, isLive: isLive, quarterLabel: quarterLabel, updatedAgo: updatedAgo, isOff: isOff, isPending: isPending, computeRecords: computeRecords, num: num,
     INDEX_POINTS: INDEX_POINTS, vpaDiv: vpaDiv, indexSkipReason: indexSkipReason, standings: standings, pct: pct, recText: recText, sortLeague: sortLeague, sortIndex: sortIndex, ordinal: ordinal, teamRankings: teamRankings,
     STAT_COLS: STAT_COLS, shotTotals: shotTotals, gradeLabel: gradeLabel, fixCase: fixCase, aggregateStats: aggregateStats,
     gameCardHTML: gameCardHTML, wireCards: wireCards, renderChrome: renderChrome
