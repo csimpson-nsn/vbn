@@ -12,6 +12,8 @@
   </script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <title>Team | Vermont Basketball Network</title>
 <meta name="description" content="Vermont high school basketball team page: schedule, results, roster, stats, and rankings.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -174,7 +176,7 @@ function scheduleHTML(team, g) {
       var result;
       if (VBN.isFinal(x) && mine !== null && theirs !== null) {
         result = '<span class="' + (mine > theirs ? 'res-w">W' : 'res-l">L') + '</span> ' + mine + '-' + theirs + (/ot/i.test(x.Quarter) ? ' (OT)' : '');
-      } else if (VBN.isLive(x)) result = '<span class="streak-l"><span class="live-dot"></span>Live ' + VBN.esc(x.Quarter) + '</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
+      } else if (VBN.isLive(x)) result = '<span class="streak-l"><span class="live-dot"></span>Live ' + VBN.esc(VBN.quarterLabel(x.Quarter)) + '</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
       else if (VBN.isPending(x)) result = '<span class="dim">Final, awaiting approval</span>' + (mine !== null ? ' ' + mine + '-' + theirs : '');
       else if (VBN.isOff(x)) result ='<span class="dim">' + VBN.esc(x.Quarter) + '</span>';
       else result = '<span class="dim">' + (VBN.timeLabel(x.Time) || 'TBA') + '</span>';

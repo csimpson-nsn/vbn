@@ -52,6 +52,8 @@
 .period.on{background:var(--green);border-color:var(--green);}
 .period.final{border-color:var(--hoop);}
 .period.final.on{background:var(--hoop);color:var(--ink);}
+.period.inq{border-style:dashed;}
+.period-help{font-size:.85rem;color:var(--steel);margin-top:4px;line-height:1.4;}
 .scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .scores .input{font-family:'Anton',sans-serif;font-size:2rem;text-align:center;}
 .confirm{border:1px solid var(--hoop);padding:14px;margin-top:18px;font-family:'Barlow Condensed',sans-serif;font-size:1.1rem;line-height:1.5;}
@@ -113,7 +115,7 @@ textarea.input{font-family:'Barlow',sans-serif;font-weight:500;font-size:1rem;mi
   <div class="wrap">
     <span class="eyebrow">Passcode Required</span>
     <h1>Contributors</h1>
-    <p>Send the score at the end of each quarter, a box score after the game, or a schedule change. A VBN approver checks everything before it shows on the site.</p>
+    <p>Send live scores during the game, a box score after it, or a schedule change. Score updates during a quarter post right away; end-of-quarter scores, finals, box scores, and changes are checked by a VBN approver first.</p>
   </div>
 </section>
 
@@ -156,7 +158,9 @@ textarea.input{font-family:'Barlow',sans-serif;font-weight:500;font-size:1rem;mi
         <form class="panel" id="scoreForm" hidden autocomplete="off">
           <h2>2. Period and score</h2>
           <p id="formGame"></p>
-          <div class="field"><label>Period that just ended</label><div class="periods" id="periods"></div></div>
+          <div class="field"><label>Score update (game in progress)</label><div class="periods" id="livePeriods"></div>
+            <p class="period-help">Send these as often as you like during a quarter.</p></div>
+          <div class="field"><label>Or the period that just ended</label><div class="periods" id="periods"></div></div>
           <div class="field">
             <label>Score</label>
             <div class="scores">
@@ -282,7 +286,15 @@ var PERIOD_BUTTONS = [
   ['Q4', 'End of 4th (tied, going to OT)'], ['OT', 'End of OT'], ['2OT', 'End of 2OT'],
   ['Final', 'Final'], ['Final/OT', 'Final (OT)'], ['Final/2OT', 'Final (2OT)']
 ];
-var ORDER = ['Q1', 'Q2', 'Half', 'Q3', 'Q4', 'OT', '2OT', '3OT', 'Final', 'Final/OT', 'Final/2OT', 'Final/3OT'];
+// In-quarter updates: the score while a quarter is being played. Saved as In Q1, In Q2, and so on.
+var LIVE_BUTTONS = [['In Q1', '1st Qtr'], ['In Q2', '2nd Qtr'], ['In Q3', '3rd Qtr'], ['In Q4', '4th Qtr'], ['In OT', 'OT'], ['In 2OT', '2OT']];
+var ORDER = ['In Q1', 'Q1', 'In Q2', 'Q2', 'Half', 'In Q3', 'Q3', 'In Q4', 'Q4', 'In OT', 'OT', 'In 2OT', '2OT', 'In 3OT', '3OT',
+             'Final', 'Final/OT', 'Final/2OT', 'Final/3OT'];
+function isInQ(p) { return /^In /.test(p || ''); }
+function periodLabel(p) {
+  var b = LIVE_BUTTONS.concat(PERIOD_BUTTONS).find(function (x) { return x[0] === p; });
+  return b ? b[1] : VBN.quarterLabel(p);
+}
 
 var S = { code: '', name: '', role: '', games: [], gender: '', game: null, period: '', pendTimer: null, duties: {} };
 var $ = function (id) { return document.getElementById(id); };
@@ -322,7 +334,7 @@ function stateText(x) {
   if (/^pending/i.test(x.quarter)) return { t: 'Final pending' + sc, c: 'done' };
   if (/^final/i.test(x.quarter)) return { t: x.quarter + sc, c: 'done' };
   if (/^(postpon|cancel)/i.test(x.quarter)) return { t: x.quarter, c: 'done' };
-  return { t: x.quarter + sc, c: 'live' };
+  return { t: VBN.quarterLabel(x.quarter) + sc, c: 'live' };
 }
 
 /* ---------- sign in ---------- */
@@ -335,6 +347,7 @@ function signIn(code) {
     $('loginPanel').hidden = true; $('app').hidden = false;
     $('whoName').textContent = d.name; $('whoRole').textContent = d.role === 'Keeper' ? 'Contributor' : d.role;   // the Hub's Keepers tab still says Keeper
     S.autoPost = d.autoPostLive === true;   // follows autoPostLive in the script
+    S.autoPostInQ = d.autoPostInQuarter === true;   // follows autoPostInQuarter in the script
     S.scope = d.scope && d.scope !== 'All games' ? d.scope : '';
     $('whoScope').textContent = S.scope ? ' · ' + S.scope : '';
     // A keeper limited to boys or girls has no use for the Boys/Girls filter.
@@ -403,7 +416,8 @@ function pickGame(id) {
     var p = PERIOD_BUTTONS[i][0];
     if (ORDER.indexOf(p) > cur && p !== 'Q4' && !/OT/.test(p)) { next = p; break; }
   }
-  S.period = g.quarter ? next : 'Q1';
+  // Mid-quarter, keep the same in-quarter button picked so repeat updates are one tap.
+  S.period = isInQ(g.quarter) ? g.quarter : g.quarter ? next : 'Q1';
   renderPeriods();
   $('confirmBox').hidden = true;
   $('scoreForm').hidden = false;
@@ -411,6 +425,11 @@ function pickGame(id) {
 }
 
 function renderPeriods() {
+  // Only offer in-quarter buttons from the game's current period on (an earlier one would be refused).
+  var cur = S.game ? ORDER.indexOf(S.game.quarter) : -1;
+  $('livePeriods').innerHTML = LIVE_BUTTONS.filter(function (p) { return ORDER.indexOf(p[0]) >= cur || p[0] === S.period; }).map(function (p) {
+    return '<button type="button" class="period inq' + (S.period === p[0] ? ' on' : '') + '" data-p="' + p[0] + '">' + p[1] + '</button>';
+  }).join('');
   $('periods').innerHTML = PERIOD_BUTTONS.map(function (p) {
     return '<button type="button" class="period' + (/^Final/.test(p[0]) ? ' final' : '') + (S.period === p[0] ? ' on' : '') + '" data-p="' + p[0] + '">' + p[1] + '</button>';
   }).join('');
@@ -423,14 +442,14 @@ function review(e) {
   e.preventDefault();
   var g = S.game, s1 = cleanScore($('s1').value), s2 = cleanScore($('s2').value);
   if (!g) return say('Pick a game first.', true);
-  if (!S.period) return say('Pick the period that just ended.', true);
+  if (!S.period) return say('Pick a score update or the period that just ended.', true);
   if (s1 === null || s2 === null) return say('Pick both scores.', true);
   if (/^Final/.test(S.period) && s1 === s2) return say('A final score cannot be tied. Check the scores, or pick an overtime period.', true);
   say('');
-  var label = PERIOD_BUTTONS.find(function (p) { return p[0] === S.period; })[1];
+  var label = isInQ(S.period) ? 'Score update: ' + periodLabel(S.period) : periodLabel(S.period);
   var note = /^Final/.test(S.period)
     ? (S.role === 'Approver' ? 'This posts as final right away.' : 'An approver checks finals before they count.')
-    : (S.role === 'Approver' || S.autoPost ? 'This posts on the site right away.' : 'An approver checks it before it shows on the site.');
+    : (S.role === 'Approver' || S.autoPost || (S.autoPostInQ && isInQ(S.period)) ? 'This posts on the site right away.' : 'An approver checks it before it shows on the site.');
   $('confirmText').innerHTML = '<b>' + esc(label) + '</b><br>' +
     esc(teamName(g.team2, g.gender)) + ' <b>' + s2 + '</b>, ' + esc(teamName(g.team1, g.gender)) + ' <b>' + s1 + '</b><br>' +
     '<span class="muted">' + note + '</span>';
@@ -481,7 +500,7 @@ function renderPending(list) {
   $('pendList').innerHTML = list.length ? list.map(function (p) {
     return '<div class="pend" data-id="' + esc(p.id) + '">' +
       '<div class="top"><span><b>' + esc(p.matchup) + '</b></span><span class="muted">' + esc(p.gameId) + '</span></div>' +
-      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + esc(p.s2) + '-' + esc(p.s1) + '</span> <span class="muted">(away-home)</span> &middot; <b style="color:var(--yellow)">' + esc(p.period) + '</b></div>' +
+      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + esc(p.s2) + '-' + esc(p.s1) + '</span> <span class="muted">(away-home)</span> &middot; <b style="color:var(--yellow)">' + esc(periodLabel(p.period)) + '</b></div>' +
       '<div class="sub">Sent by ' + esc(p.keeper) + (p.when ? ' at ' + esc(p.when) : '') + (p.prev ? ' &middot; before this: ' + esc(p.prev) : '') + '</div>' +
       '<div class="row"><button class="btn" type="button" data-act="approve"><span>Approve</span></button>' +
       '<button class="btn reject" type="button" data-act="reject"><span>Reject</span></button></div></div>';
@@ -921,9 +940,11 @@ document.addEventListener('DOMContentLoaded', function () {
   });
   $('gameList').addEventListener('click', function (e) { var b = e.target.closest('.pick-game'); if (b) pickGame(b.dataset.id); });
   $('refreshGames').addEventListener('click', refreshGames);
-  $('periods').addEventListener('click', function (e) {
-    var b = e.target.closest('.period'); if (!b) return;
-    S.period = b.dataset.p; renderPeriods(); $('confirmBox').hidden = true;
+  ['periods', 'livePeriods'].forEach(function (id) {
+    $(id).addEventListener('click', function (e) {
+      var b = e.target.closest('.period'); if (!b) return;
+      S.period = b.dataset.p; renderPeriods(); $('confirmBox').hidden = true;
+    });
   });
   // Score pick lists: 0 to 200, blank until picked so a score is never sent by accident.
   ['s1', 's2'].forEach(function (id) {
