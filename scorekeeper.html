@@ -53,6 +53,7 @@
 .period.final{border-color:var(--hoop);}
 .period.final.on{background:var(--hoop);color:var(--ink);}
 .period.inq{border-style:dashed;}
+.disagree{display:inline-block;margin-left:6px;padding:2px 8px;background:var(--live);color:#fff;font-weight:700;text-transform:uppercase;letter-spacing:.05em;font-size:.75rem;}
 .period-help{font-size:.85rem;color:var(--steel);margin-top:4px;line-height:1.4;}
 .scores{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .scores .input{font-family:'Anton',sans-serif;font-size:2rem;text-align:center;}
@@ -115,7 +116,7 @@ textarea.input{font-family:'Barlow',sans-serif;font-weight:500;font-size:1rem;mi
   <div class="wrap">
     <span class="eyebrow">Passcode Required</span>
     <h1>Contributors</h1>
-    <p>Send live scores during the game, a box score after it, or a schedule change. Score updates during a quarter post right away; end-of-quarter scores, finals, box scores, and changes are checked by a VBN approver first.</p>
+    <p>Send live scores during the game, a box score after it, or a schedule change. Score updates during a quarter post right away; end-of-quarter scores and finals post once a VBN approver checks them or a second keeper sends the same score. Box scores and changes are checked by an approver.</p>
   </div>
 </section>
 
@@ -338,16 +339,36 @@ function stateText(x) {
 }
 
 /* ---------- sign in ---------- */
+// A sign-in lasts SESSION_HOURS from when the keeper first signs in, kept on this phone even if the tab closes.
+// Safety net: it never ends within GRACE_MINUTES of the keeper's last score, so nobody is signed out mid-game.
+var SESSION_HOURS = 2, GRACE_MINUTES = 45, SESSION_KEY = 'vbnSession';
+function readSession() { try { return JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); } catch (e) { return null; } }
+function writeSession(x) { try { localStorage.setItem(SESSION_KEY, JSON.stringify(x)); } catch (e) {} }
+function clearSession() { try { localStorage.removeItem(SESSION_KEY); sessionStorage.removeItem('vbnCode'); } catch (e) {} }
+function sessionEnds(x) { return Math.max(x.start + SESSION_HOURS * 3600000, (x.last || 0) + GRACE_MINUTES * 60000); }
+function touchSession() { var x = readSession(); if (x) { x.last = Date.now(); writeSession(x); } }
+function checkSession() {
+  var x = readSession();
+  if (!S.name || !x) return;
+  // Wait while a score is on the confirm screen, so it can still be sent.
+  if (Date.now() > sessionEnds(x) && $('confirmBox').hidden) {
+    signOut('You were signed out ' + SESSION_HOURS + ' hours after signing in. Enter your passcode to keep going.');
+  }
+}
+
 function signIn(code) {
   S.code = code;
   $('loginBtn').disabled = true;
   return api('login').then(function (d) {
     S.name = d.name; S.role = d.role; S.games = d.games || [];
-    try { sessionStorage.setItem('vbnCode', code); } catch (e) {}
+    var old = readSession();
+    // Reloading the page keeps the original sign-in time; a new sign-in starts the clock.
+    writeSession(old && old.code === code && Date.now() <= sessionEnds(old) ? old : { code: code, start: Date.now(), last: 0 });
     $('loginPanel').hidden = true; $('app').hidden = false;
     $('whoName').textContent = d.name; $('whoRole').textContent = d.role === 'Keeper' ? 'Contributor' : d.role;   // the Hub's Keepers tab still says Keeper
     S.autoPost = d.autoPostLive === true;   // follows autoPostLive in the script
     S.autoPostInQ = d.autoPostInQuarter === true;   // follows autoPostInQuarter in the script
+    S.matchPost = d.confirmByMatch === true;        // two keepers sending the same score posts it (confirmByMatch)
     S.scope = d.scope && d.scope !== 'All games' ? d.scope : '';
     $('whoScope').textContent = S.scope ? ' · ' + S.scope : '';
     // A keeper limited to boys or girls has no use for the Boys/Girls filter.
@@ -366,13 +387,13 @@ function signIn(code) {
     if (d.role === 'Approver') loadPending(true);
   }).catch(function (e) {
     S.code = '';
-    try { sessionStorage.removeItem('vbnCode'); } catch (x) {}
+    clearSession();
     say(e.message, true);
   }).then(function () { $('loginBtn').disabled = false; });
 }
 
 function signOut(reason) {
-  try { sessionStorage.removeItem('vbnCode'); } catch (e) {}
+  clearSession();
   clearInterval(S.pendTimer);
   S = { code: '', name: '', role: '', games: [], gender: S.gender, game: null, period: '', pendTimer: null, duties: {} };
   B = { games: [], game: null, team: '', roster: [], lines: {}, off: {}, open: '' };
@@ -448,8 +469,9 @@ function review(e) {
   say('');
   var label = isInQ(S.period) ? 'Score update: ' + periodLabel(S.period) : periodLabel(S.period);
   var note = /^Final/.test(S.period)
-    ? (S.role === 'Approver' ? 'This posts as final right away.' : 'An approver checks finals before they count.')
-    : (S.role === 'Approver' || S.autoPost || (S.autoPostInQ && isInQ(S.period)) ? 'This posts on the site right away.' : 'An approver checks it before it shows on the site.');
+    ? (S.role === 'Approver' ? 'This posts as final right away.' : 'An approver checks finals before they count' + (S.matchPost ? ', unless another keeper sends the same final score.' : '.'))
+    : (S.role === 'Approver' || S.autoPost || (S.autoPostInQ && isInQ(S.period)) ? 'This posts on the site right away.'
+       : 'An approver checks it before it shows on the site' + (S.matchPost ? ', unless another keeper sends the same score.' : '.'));
   $('confirmText').innerHTML = '<b>' + esc(label) + '</b><br>' +
     esc(teamName(g.team2, g.gender)) + ' <b>' + s2 + '</b>, ' + esc(teamName(g.team1, g.gender)) + ' <b>' + s1 + '</b><br>' +
     '<span class="muted">' + note + '</span>';
@@ -463,6 +485,7 @@ function send() {
   api('submit', { gameId: S.game.id, period: S.period, s1: $('s1').value.trim(), s2: $('s2').value.trim() })
     .then(function (d) {
       S.games = d.games || S.games;
+      touchSession();
       say(d.message);
       $('scoreForm').hidden = true; S.game = null;
       renderGames();
@@ -500,8 +523,10 @@ function renderPending(list) {
   $('pendList').innerHTML = list.length ? list.map(function (p) {
     return '<div class="pend" data-id="' + esc(p.id) + '">' +
       '<div class="top"><span><b>' + esc(p.matchup) + '</b></span><span class="muted">' + esc(p.gameId) + '</span></div>' +
-      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + esc(p.s2) + '-' + esc(p.s1) + '</span> <span class="muted">(away-home)</span> &middot; <b style="color:var(--yellow)">' + esc(periodLabel(p.period)) + '</b></div>' +
+      '<div style="margin-top:6px;font-family:\'Barlow Condensed\',sans-serif;"><span class="score" style="font-family:Anton,sans-serif;">' + esc(p.s2) + '-' + esc(p.s1) + '</span> <span class="muted">(away-home)</span> &middot; <b style="color:var(--yellow)">' + esc(periodLabel(p.period)) + '</b>' +
+      (p.disagree ? ' <span class="disagree">Keepers disagree</span>' : '') + '</div>' +
       '<div class="sub">Sent by ' + esc(p.keeper) + (p.when ? ' at ' + esc(p.when) : '') + (p.prev ? ' &middot; before this: ' + esc(p.prev) : '') + '</div>' +
+      (p.note ? '<div class="sub" style="color:var(--live)">' + esc(p.note) + '</div>' : '') +
       '<div class="row"><button class="btn" type="button" data-act="approve"><span>Approve</span></button>' +
       '<button class="btn reject" type="button" data-act="reject"><span>Reject</span></button></div></div>';
   }).join('') : '<p class="empty">Nothing is waiting. Nice work.</p>';
@@ -997,9 +1022,12 @@ document.addEventListener('DOMContentLoaded', function () {
     var b = e.target.closest('button[data-act]'); if (b) decidePending(b.closest('.pend'), b.dataset.act);
   });
 
-  var saved = '';
-  try { saved = sessionStorage.getItem('vbnCode') || ''; } catch (e) {}
-  if (saved) signIn(saved);
+  var saved = readSession();
+  try { sessionStorage.removeItem('vbnCode'); } catch (e) {}   // the old way of remembering a sign-in
+  if (saved && saved.code && Date.now() <= sessionEnds(saved)) signIn(saved.code);
+  else clearSession();
+  setInterval(checkSession, 60000);
+  document.addEventListener('visibilitychange', function () { if (!document.hidden) checkSession(); });
 });
 </script>
 </body>
