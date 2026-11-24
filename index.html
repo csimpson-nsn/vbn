@@ -36,6 +36,14 @@
 .podcast h3{font-size:1.8rem;line-height:1.05;}
 .podcast p{color:var(--steel);line-height:1.55;margin-top:8px;max-width:620px;}
 .podcast .row{display:flex;gap:12px;flex-wrap:wrap;margin-top:16px;align-items:center;}
+/* contributor bar: right under the banner, so keepers see it on a phone without scrolling */
+.keeper-bar{background:var(--court);border-bottom:1px solid var(--line);border-left:4px solid var(--green-light);padding:14px 0;}
+.keeper-bar .inner{display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;}
+.keeper-bar p{line-height:1.45;color:var(--steel);}
+.keeper-bar p b{color:var(--snow);}
+.keeper-bar .btn{padding:10px 22px;white-space:nowrap;background:transparent;color:var(--snow);box-shadow:inset 0 0 0 2px var(--green-light);}
+.keeper-bar .btn:hover{background:var(--green);}
+@media (max-width:640px){.keeper-bar .btn{display:block;width:100%;text-align:center;}}
 </style>
 <script src="assets/vbn.js"></script>
 </head>
@@ -67,6 +75,14 @@
   </div>
 </section>
 
+<!-- CONTRIBUTOR BAR: the one homepage link for scorekeepers. The passcode info lives on scorekeeper.html. -->
+<div class="keeper-bar">
+  <div class="wrap inner">
+    <p><b>Coaches &amp; scorekeepers:</b> send scores, stats and schedule changes.</p>
+    <a href="scorekeeper.html" class="btn"><span>Contributor Sign In &rarr;</span></a>
+  </div>
+</div>
+
 <section class="section">
   <div class="wrap">
     <div class="section-head">
@@ -80,9 +96,7 @@
     </div>
     <div id="dayGrid"></div>
     <p class="empty" id="dayEmpty" style="display:none;"></p>
-    <a href="schedule.html" class="btn" id="fullBtn" style="margin-top:6px;"><span>See the Full Schedule</span></a>
-    <div class="note" style="margin:30px 0 0;"><b>Send scores or stats for your school.</b> Live scores and box scores come from VBN contributors: coaches, stat keepers, and fans courtside. Want to help? Email <b>csimpson@nsnsports.net</b> for a passcode. Already have one? <a class="link" href="scorekeeper.html">Contributor Sign In &rarr;</a></div>
-  </div>
+    <a href="schedule.html" class="btn" id="fullBtn" style="margin-top:6px;"><span>See the Full Schedule</span></a>  </div>
 </section>
 
 <!-- RECOGNITION: placeholders until the first honorees are picked. Swap each dashed box for a photo
